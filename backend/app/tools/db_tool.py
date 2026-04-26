@@ -388,3 +388,14 @@ def db_add_project_requirement(project_name: str, item_name: str, required_quant
         )
     finally:
         db.close()
+
+
+def db_get_latest_project_name() -> Optional[str]:
+    db: Session = SessionLocal()
+    try:
+        project = db.query(Project).order_by(Project.created_at.desc()).first()
+        if not project:
+            return None
+        return project.name
+    finally:
+        db.close()

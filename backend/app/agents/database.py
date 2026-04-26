@@ -1,10 +1,12 @@
 import re
 from typing import Optional
 
+from app.services.feasibility_service import check_project_feasibility, format_feasibility_for_agent
 from app.tools.db_tool import (
     db_add_project_requirement,
     db_create_project,
     db_delete_project,
+    db_get_latest_project_name,
     db_query_projects,
     db_update_project_status,
 )
@@ -87,6 +89,75 @@ def _parse_project_requirement(query: str) -> Optional[tuple[str, int, str, Opti
     return None
 
 
+def _parse_project_feasibility_target(query: str) -> Optional[str]:
+    text = (query or "").strip()
+    if not re.search(
+        r"\b(feasibility|feasible|viable|viability|readiness|can\s+i\s+start|can\s+we\s+start|should\s+i\s+start|ready)\b",
+        text,
+        flags=re.IGNORECASE,
+    ):
+        return None
+
+    def _clean_target(target: str) -> str:
+        cleaned = (target or "").strip(" .,:;!?")
+        cleaned = re.sub(r"^(?:project\s+)?(?:called\s+)?", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s+project$", "", cleaned, flags=re.IGNORECASE).strip(" .,:;")
+        return cleaned
+
+    project_match = re.search(r"\bfor\s+(?:project\s+)?(?:called\s+)?(.+)$", text, flags=re.IGNORECASE)
+    if project_match:
+        target = _clean_target(project_match.group(1))
+        if target:
+            return target
+
+    start_match = re.search(
+        r"\b(?:can\s+i\s+start|can\s+we\s+start|should\s+i\s+start)\s+(.+)$",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if start_match:
+        target = _clean_target(start_match.group(1))
+        if target:
+            return target
+
+    readiness_match = re.search(
+        r"\b(?:is|can|should)\s+(.+?)\s+project\s+(?:ready|feasible|viable|to\s+start)\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if readiness_match:
+        target = _clean_target(readiness_match.group(1))
+        if target:
+            return target
+
+    named_readiness_match = re.search(
+        r"\b(.+?)\s+project\s+(?:is\s+)?(?:ready|feasible|viable|to\s+start)\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if named_readiness_match:
+        target = _clean_target(named_readiness_match.group(1))
+        if target:
+            return target
+
+    named_match = re.search(r"\bproject\s+(?:called\s+)?(.+)$", text, flags=re.IGNORECASE)
+    if named_match:
+        target = _clean_target(named_match.group(1))
+        if target:
+            return target
+
+    if re.search(r"\b(this|that)\s+project\b", text, flags=re.IGNORECASE):
+        latest = db_get_latest_project_name()
+        if latest:
+            return latest
+
+    if re.search(r"\bproject\b", text, flags=re.IGNORECASE):
+        latest = db_get_latest_project_name()
+        if latest:
+            return latest
+    return None
+
+
 def _deny_if_no_permission(role: str, action: str) -> Optional[str]:
     normalized_role = (role or "sandy").strip().lower()
     if action == "delete" and normalized_role not in DELETE_ALLOWED_ROLES:
@@ -104,6 +175,11 @@ def database_node(state: dict) -> dict:
 
     query = (state.get("user_query") or "").strip()
     role = (state.get("role") or "sandy").strip().lower()
+
+    feasibility_target = _parse_project_feasibility_target(query)
+    if feasibility_target:
+        feasibility_data = check_project_feasibility(feasibility_target)
+        return {"db_result": format_feasibility_for_agent(feasibility_data)}
 
     requirement_data = _parse_project_requirement(query)
     if requirement_data:

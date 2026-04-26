@@ -16,6 +16,9 @@ INVENTORY_KEYWORDS = {
 PROJECT_KEYWORDS = {
 	"project", "plan", "task", "roadmap", "priority", "deadline", "schedule", "milestone", "status"
 }
+FEASIBILITY_KEYWORDS = {
+	"feasibility", "feasible", "viable", "viability", "can start", "can we start", "readiness"
+}
 
 
 def is_smalltalk_query(query: str) -> bool:
@@ -37,10 +40,25 @@ def _contains_any(text: str, words: set[str]) -> bool:
 	return any(w in text for w in words)
 
 
+def _is_feasibility_query(text: str) -> bool:
+	if _contains_any(text, FEASIBILITY_KEYWORDS):
+		return True
+	patterns = [
+		r"\bcan\s+i\s+start\b",
+		r"\bcan\s+we\s+start\b",
+		r"\bshould\s+i\s+start\b",
+		r"\bis\s+.+\s+ready\b",
+		r"\bproject\s+read(?:y|iness)\b",
+	]
+	return any(re.search(pattern, text) for pattern in patterns)
+
+
 def _rule_based_intent(query: str) -> Optional[dict]:
 	text = (query or "").strip().lower()
 	if is_smalltalk_query(text):
 		return {"intent": "chat", "active_agents": []}
+	if _is_feasibility_query(text):
+		return {"intent": "projects", "active_agents": ["database"]}
 
 	wants_research = _contains_any(text, RESEARCH_KEYWORDS)
 	wants_inventory = _contains_any(text, INVENTORY_KEYWORDS)
