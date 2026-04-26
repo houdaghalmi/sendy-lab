@@ -2,6 +2,7 @@ import re
 from typing import Optional
 
 from app.tools.db_tool import (
+    db_add_project_requirement,
     db_create_project,
     db_delete_project,
     db_query_projects,
@@ -24,6 +25,8 @@ def _parse_priority(query: str) -> int:
 
 def _parse_project_create_name(query: str) -> Optional[str]:
     text = query.strip()
+    if re.search(r"\brequire(?:ment|ments)?\b", text, flags=re.IGNORECASE):
+        return None
     if not re.search(r"\b(add|create|new)\b", text, flags=re.IGNORECASE):
         return None
     if not re.search(r"\b(plan|project|task)\b", text, flags=re.IGNORECASE):
@@ -65,6 +68,25 @@ def _extract_status_filter(query: str) -> Optional[str]:
     return m.group(1).lower() if m else None
 
 
+def _parse_project_requirement(query: str) -> Optional[tuple[str, int, str, Optional[str]]]:
+    patterns = [
+        r"(?:add(?:ed)?|set|update)\s+require(?:ment|ments)?[:\s]*project\s+(?:called\s+)?(.+?)\s+needs?\s+(\d+)\s*(ml|l|g|kg|units?)\s+of\s+(.+)$",
+        r"project\s+(?:called\s+)?(.+?)\s+needs?\s+(\d+)\s*(ml|l|g|kg|units?)\s+of\s+(.+)$",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, query, flags=re.IGNORECASE)
+        if not match:
+            continue
+        project_name = match.group(1).strip(" .,:;")
+        qty = int(match.group(2))
+        unit = match.group(3).lower()
+        item_name = match.group(4).strip(" .,:;")
+        if unit == "unit":
+            unit = "units"
+        return project_name, qty, item_name, unit
+    return None
+
+
 def _deny_if_no_permission(role: str, action: str) -> Optional[str]:
     normalized_role = (role or "sandy").strip().lower()
     if action == "delete" and normalized_role not in DELETE_ALLOWED_ROLES:
@@ -82,6 +104,20 @@ def database_node(state: dict) -> dict:
 
     query = (state.get("user_query") or "").strip()
     role = (state.get("role") or "sandy").strip().lower()
+
+    requirement_data = _parse_project_requirement(query)
+    if requirement_data:
+        denied = _deny_if_no_permission(role, "update")
+        if denied:
+            return {"db_result": denied}
+        project_name, qty, item_name, unit = requirement_data
+        result = db_add_project_requirement(
+            project_name=project_name,
+            item_name=item_name,
+            required_quantity=qty,
+            unit=unit,
+        )
+        return {"db_result": result}
 
     create_name = _parse_project_create_name(query)
     if create_name:

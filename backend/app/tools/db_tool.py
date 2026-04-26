@@ -6,6 +6,10 @@ import json
 
 VALID_PROJECT_STATUSES = {"planned", "ongoing", "completed"}
 
+
+def _normalize_name(value: str) -> str:
+    return " ".join((value or "").strip().lower().split())
+
 def db_query_inventory(item_name: Optional[str] = None) -> str:
     db: Session = SessionLocal()
     try:
@@ -311,5 +315,76 @@ def db_check_project_feasibility(project_name_or_id: object) -> Dict[str, Any]:
             "risky_items": risky_items,
             "suggested_action": suggestion,
         }
+    finally:
+        db.close()
+
+
+def db_add_project_requirement(project_name: str, item_name: str, required_quantity: int, unit: Optional[str] = None) -> str:
+    safe_project_name = _normalize_name(project_name)
+    safe_item_name = _normalize_name(item_name)
+    safe_required_quantity = max(0, int(required_quantity))
+    safe_unit = (unit or "").strip().lower()
+
+    if not safe_project_name:
+        return "Project name is required to add a requirement."
+    if not safe_item_name:
+        return "Inventory item name is required to add a requirement."
+    if safe_required_quantity <= 0:
+        return "Required quantity must be greater than zero."
+
+    db: Session = SessionLocal()
+    try:
+        project = (
+            db.query(Project)
+            .filter(Project.name.ilike(f"%{safe_project_name}%"))
+            .order_by(Project.created_at.desc())
+            .first()
+        )
+        if not project:
+            return f"Project '{project_name}' not found."
+
+        item = (
+            db.query(InventoryItem)
+            .filter(InventoryItem.name.ilike(f"%{safe_item_name}%"))
+            .order_by(InventoryItem.id.desc())
+            .first()
+        )
+        if not item:
+            return f"Inventory item '{item_name}' not found."
+
+        item_unit = (item.unit or "").strip().lower()
+        if safe_unit and item_unit and safe_unit != item_unit:
+            return (
+                f"Unit mismatch for '{item.name}': inventory uses '{item.unit}', "
+                f"requirement provided '{unit}'."
+            )
+
+        requirement = (
+            db.query(ProjectRequirement)
+            .filter(
+                ProjectRequirement.project_id == project.id,
+                ProjectRequirement.inventory_id == item.id,
+            )
+            .first()
+        )
+        if requirement:
+            requirement.required_quantity = safe_required_quantity
+            db.commit()
+            return (
+                f"Updated requirement for project '{project.name}': "
+                f"{item.name} = {requirement.required_quantity} {item.unit or 'units'}."
+            )
+
+        requirement = ProjectRequirement(
+            project_id=project.id,
+            inventory_id=item.id,
+            required_quantity=safe_required_quantity,
+        )
+        db.add(requirement)
+        db.commit()
+        return (
+            f"Added requirement to project '{project.name}': "
+            f"{item.name} = {safe_required_quantity} {item.unit or 'units'}."
+        )
     finally:
         db.close()
