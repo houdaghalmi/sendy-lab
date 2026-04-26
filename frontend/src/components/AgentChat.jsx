@@ -17,6 +17,8 @@ const agentLabels = {
   synthesizer: '✨ Final Response',
 }
 
+const SHOW_AGENT_TRACE = process.env.NEXT_PUBLIC_SHOW_AGENT_TRACE === 'true'
+
 export default function AgentChat({ role }) {
   const [messages, setMessages] = useState([
     {
@@ -29,12 +31,11 @@ export default function AgentChat({ role }) {
   const [activeAgents, setActiveAgents] = useState([])
   const wsRef = useRef(null)
   const bottomRef = useRef(null)
+  const wsBaseUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000'
 
   useEffect(() => {
     const ws = new WebSocket(
-      process.env.NEXT_PUBLIC_WS_URL
-        ? `${process.env.NEXT_PUBLIC_WS_URL}/ws/chat`
-        : 'ws://localhost:8000/ws/chat'
+      `${wsBaseUrl}/ws/chat`
     )
     wsRef.current = ws
 
@@ -45,21 +46,21 @@ export default function AgentChat({ role }) {
         const { agent, data: output } = data
         setActiveAgents(prev => [...new Set([...prev, agent])])
 
-        if (output.research_result) {
+        if (SHOW_AGENT_TRACE && output.research_result) {
           setMessages(prev => [...prev, {
             role: 'agent', agent: 'research',
             content: output.research_result,
             tools: ['web_search()'],
           }])
         }
-        if (output.inventory_result) {
+        if (SHOW_AGENT_TRACE && output.inventory_result) {
           setMessages(prev => [...prev, {
             role: 'agent', agent: 'inventory',
             content: output.inventory_result,
             tools: ['db.query("inventory")'],
           }])
         }
-        if (output.db_result) {
+        if (SHOW_AGENT_TRACE && output.db_result) {
           setMessages(prev => [...prev, {
             role: 'agent', agent: 'database',
             content: output.db_result,
@@ -83,7 +84,7 @@ export default function AgentChat({ role }) {
     ws.onerror = () => {
       setMessages(prev => [...prev, {
         role: 'agent', agent: 'planner',
-        content: '⚠️ Could not connect to backend. Make sure the FastAPI server is running on port 8000.',
+        content: `⚠️ Could not connect to backend at ${wsBaseUrl}. Make sure FastAPI is running and the frontend env URL is correct.`,
       }])
     }
 

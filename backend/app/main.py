@@ -1,13 +1,29 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+import sys
+from pathlib import Path
+import os
+import socket
+
+# Allow running this file directly (python app/main.py) by ensuring backend/ is on sys.path.
+if __package__ is None or __package__ == "":
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
+from contextlib import asynccontextmanager
 import json
 
-from graph import app_graph, AgentState
-from models.schema import create_tables, get_db, Project, InventoryItem
-from routers import chat, projects, inventory
+from app.graph import AgentState, run_agent_workflow
+from app.models.schema import create_tables, get_db, Project, InventoryItem
+from app.routers import projects, inventory
 
-app = FastAPI(title="Sandy's Treedome Lab API")
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    create_tables()
+    seed_data()
+    yield
+
+
+app = FastAPI(title="Sandy's Treedome Lab API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,26 +35,24 @@ app.add_middleware(
 app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
 app.include_router(inventory.router, prefix="/api/inventory", tags=["inventory"])
 
-@app.on_event("startup")
-async def startup():
-    create_tables()
-    seed_data()
-
 def seed_data():
     db = next(get_db())
-    if db.query(Project).count() == 0:
-        db.add_all([
-            Project(name="Karate Biomechanics Study", description="Analysing force vectors in underwater karate", status="experiment", progress=67, owner="Sandy"),
-            Project(name="Treedome Atmospheric AI", description="ML oxygen recycling optimisation", status="experiment", progress=81, owner="Sandy"),
-            Project(name="Jellyfish Energy Cells", description="Bio-electric current harvesting", status="complete", progress=100, owner="Sandy"),
-        ])
-        db.add_all([
-            InventoryItem(name="Acorn Extract", category="Reagents", quantity=142, unit="mL", min_threshold=50, status="ok"),
-            InventoryItem(name="Motion Sensors", category="Equipment", quantity=3, unit="units", min_threshold=5, status="low"),
-            InventoryItem(name="Liquid Nitrogen", category="Chemicals", quantity=0.5, unit="L", min_threshold=2, status="critical"),
-            InventoryItem(name="Saline Solution", category="Chemicals", quantity=8.4, unit="L", min_threshold=2, status="ok"),
-        ])
-        db.commit()
+    try:
+        if db.query(Project).count() == 0:
+            db.add_all([
+                Project(name="Karate Biomechanics Study", description="Analysing force vectors in underwater karate", status="ongoing", priority=2),
+                Project(name="Treedome Atmospheric AI", description="ML oxygen recycling optimisation", status="ongoing", priority=1),
+                Project(name="Jellyfish Energy Cells", description="Bio-electric current harvesting", status="completed", priority=1),
+            ])
+            db.add_all([
+                InventoryItem(name="Acorn Extract", category="Reagents", quantity=142, unit="mL", min_required=50),
+                InventoryItem(name="Motion Sensors", category="Equipment", quantity=3, unit="units", min_required=5),
+                InventoryItem(name="Liquid Nitrogen", category="Chemicals", quantity=1, unit="L", min_required=2),
+                InventoryItem(name="Saline Solution", category="Chemicals", quantity=8, unit="L", min_required=2),
+            ])
+            db.commit()
+    finally:
+        db.close()
 
 # ── WebSocket endpoint for streaming agent responses ─────────────
 @app.websocket("/ws/chat")
@@ -62,7 +76,7 @@ async def websocket_chat(websocket: WebSocket):
             }
             
             # Stream each agent step
-            async for event in app_graph.astream(initial_state):
+            async for event in run_agent_workflow(initial_state):
                 for node_name, node_output in event.items():
                     await websocket.send_json({
                         "type": "agent_update",
@@ -78,3 +92,24 @@ async def websocket_chat(websocket: WebSocket):
 @app.get("/health")
 def health():
     return {"status": "ok", "lab": "Sandy's Treedome"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    host = os.getenv("HOST", "0.0.0.0")
+    base_port = int(os.getenv("PORT", "8000"))
+
+    def find_open_port(start_port: int) -> int:
+        port = start_port
+        while True:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+                try:
+                    probe.bind((host, port))
+                    return port
+                except OSError:
+                    port += 1
+
+    port = find_open_port(base_port)
+
+    uvicorn.run(app, host=host, port=port)

@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import AgentChat from '../components/AgentChat'
+import AgentChat from '../../components/AgentChat'
 
 export default function Dashboard() {
   const [role, setRole] = useState('sandy')

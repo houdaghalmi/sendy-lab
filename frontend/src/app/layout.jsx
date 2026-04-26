@@ -1,7 +1,7 @@
-import { Fredoka_One, Nunito } from 'next/font/google'
+import { Fredoka, Nunito } from 'next/font/google'
 import './globals.css'
 
-const fredoka = Fredoka_One({ weight: '400', subsets: ['latin'], variable: '--font-fredoka' })
+const fredoka = Fredoka({ subsets: ['latin'], variable: '--font-fredoka' })
 const nunito = Nunito({ subsets: ['latin'], variable: '--font-nunito' })
 
 export const metadata = {

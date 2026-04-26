@@ -2,16 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
-from models.schema import get_db, Project
+from app.models.schema import get_db, Project
 
 router = APIRouter()
 
 class ProjectCreate(BaseModel):
     name: str
     description: Optional[str] = ""
-    status: Optional[str] = "research"
-    progress: Optional[int] = 0
-    owner: Optional[str] = "Sandy"
+    status: Optional[str] = "planned"
+    priority: Optional[int] = 1
 
 @router.get("/")
 def list_projects(db: Session = Depends(get_db)):

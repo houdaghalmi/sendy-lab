@@ -1,12 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
 
 const phaseColor = {
-  research:   '#52B788',
-  experiment: '#F5C842',
-  complete:   '#90E0EF',
+  planned:   '#F5C842',
+  ongoing:   '#52B788',
+  completed: '#90E0EF',
 }
 
 export default function ProjectList() {
@@ -39,19 +39,19 @@ export default function ProjectList() {
                 {p.status}
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ fontSize: 11, color: '#7AB8D4', fontWeight: 600 }}>{p.owner}</div>
-              <div style={{ flex: 1, height: 4, background: 'rgba(144,224,239,0.08)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', width: `${p.progress}%`,
-                  background: 'linear-gradient(90deg, var(--ocean), var(--grass))',
-                  borderRadius: 2, transition: 'width .5s ease',
-                }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 11, color: '#7AB8D4', fontWeight: 600 }}>
+                Priority {p.priority ?? 1}
               </div>
-              <div style={{ fontSize: 11, color: '#90E0EF', fontWeight: 700, minWidth: 32, textAlign: 'right' }}>
-                {p.progress}%
+              <div style={{ fontSize: 11, color: '#90E0EF', fontWeight: 700, textTransform: 'uppercase' }}>
+                {(p.status || 'planned')}
               </div>
             </div>
+            {p.description && (
+              <div style={{ marginTop: 8, fontSize: 12, color: '#B8D7E6', lineHeight: 1.45 }}>
+                {p.description}
+              </div>
+            )}
           </div>
         )
       })}
