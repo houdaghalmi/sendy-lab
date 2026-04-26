@@ -1,8 +1,7 @@
-import { Fredoka_One, Nunito } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import './globals.css'
 
-const fredoka = Fredoka_One({ weight: '400', subsets: ['latin'], variable: '--font-fredoka' })
-const nunito = Nunito({ subsets: ['latin'], variable: '--font-nunito' })
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata = {
   title: "Sandy's Treedome Lab",
@@ -11,8 +10,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className={`${fredoka.variable} ${nunito.variable}`}>{children}</body>
+    <html lang="en" className={inter.variable}>
+      <body style={{ margin: 0, padding: 0 }}>{children}</body>
     </html>
   )
 }
