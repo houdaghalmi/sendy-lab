@@ -5,6 +5,7 @@ from app.services.feasibility_service import check_project_feasibility, format_f
 from app.tools.db_tool import (
     db_add_project_requirement,
     db_create_project,
+    db_delete_all_projects,
     db_delete_project,
     db_get_latest_project_name,
     db_query_projects,
@@ -65,6 +66,16 @@ def _parse_project_delete_name(query: str) -> Optional[str]:
     return None
 
 
+def _is_delete_all_projects(query: str) -> bool:
+    text = (query or "").strip().lower()
+    patterns = [
+        r"\b(?:delete|remove)\s+all\s+(?:the\s+)?projects\b",
+        r"\b(?:delete|remove)\s+projects\b",
+        r"\bclear\s+all\s+projects\b",
+    ]
+    return any(re.search(pattern, text) for pattern in patterns)
+
+
 def _extract_status_filter(query: str) -> Optional[str]:
     m = re.search(r"\b(planned|ongoing|completed)\b", query, flags=re.IGNORECASE)
     return m.group(1).lower() if m else None
@@ -74,15 +85,23 @@ def _parse_project_requirement(query: str) -> Optional[tuple[str, int, str, Opti
     patterns = [
         r"(?:add(?:ed)?|set|update)\s+require(?:ment|ments)?[:\s]*project\s+(?:called\s+)?(.+?)\s+needs?\s+(\d+)\s*(ml|l|g|kg|units?)\s+of\s+(.+)$",
         r"project\s+(?:called\s+)?(.+?)\s+needs?\s+(\d+)\s*(ml|l|g|kg|units?)\s+of\s+(.+)$",
+        r"(?:i\s+need|we\s+need)\s+(\d+)\s*(ml|l|g|kg|units?)\s+of\s+(.+?)\s+(?:to|for)\s+(?:my\s+)?project\s+(?:called\s+)?(.+)$",
+        r"(?:my\s+)?project\s+(?:called\s+)?(.+?)\s+(?:requires?|needs?)\s+(\d+)\s*(ml|l|g|kg|units?)\s+of\s+(.+)$",
     ]
     for pattern in patterns:
         match = re.search(pattern, query, flags=re.IGNORECASE)
         if not match:
             continue
-        project_name = match.group(1).strip(" .,:;")
-        qty = int(match.group(2))
-        unit = match.group(3).lower()
-        item_name = match.group(4).strip(" .,:;")
+        if pattern.startswith(r"(?:i\s+need|we\s+need)"):
+            qty = int(match.group(1))
+            unit = match.group(2).lower()
+            item_name = match.group(3).strip(" .,:;")
+            project_name = match.group(4).strip(" .,:;")
+        else:
+            project_name = match.group(1).strip(" .,:;")
+            qty = int(match.group(2))
+            unit = match.group(3).lower()
+            item_name = match.group(4).strip(" .,:;")
         if unit == "unit":
             unit = "units"
         return project_name, qty, item_name, unit
@@ -218,6 +237,13 @@ def database_node(state: dict) -> dict:
         return {"db_result": result}
 
     delete_name = _parse_project_delete_name(query)
+    if _is_delete_all_projects(query):
+        denied = _deny_if_no_permission(role, "delete")
+        if denied:
+            return {"db_result": denied}
+        result = db_delete_all_projects()
+        return {"db_result": result}
+
     if delete_name:
         denied = _deny_if_no_permission(role, "delete")
         if denied:

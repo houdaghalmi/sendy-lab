@@ -111,6 +111,28 @@ def db_add_inventory_item(
     finally:
         db.close()
 
+
+def db_delete_all_inventory() -> str:
+    db: Session = SessionLocal()
+    try:
+        items = db.query(InventoryItem).all()
+        if not items:
+            return "No inventory items found to delete."
+
+        item_ids = [item.id for item in items]
+        (
+            db.query(ProjectRequirement)
+            .filter(ProjectRequirement.inventory_id.in_(item_ids))
+            .delete(synchronize_session=False)
+        )
+        deleted_count = len(items)
+        for item in items:
+            db.delete(item)
+        db.commit()
+        return f"Deleted all inventory items ({deleted_count} total)."
+    finally:
+        db.close()
+
 def db_query_projects(status_filter: Optional[str] = None) -> str:
     db: Session = SessionLocal()
     try:
@@ -196,6 +218,22 @@ def db_delete_project(project_name: str) -> str:
         db.delete(project)
         db.commit()
         return f"Deleted project '{project_label}'."
+    finally:
+        db.close()
+
+
+def db_delete_all_projects() -> str:
+    db: Session = SessionLocal()
+    try:
+        projects = db.query(Project).all()
+        if not projects:
+            return "No projects found to delete."
+
+        deleted_count = len(projects)
+        for project in projects:
+            db.delete(project)
+        db.commit()
+        return f"Deleted all projects ({deleted_count} total)."
     finally:
         db.close()
 

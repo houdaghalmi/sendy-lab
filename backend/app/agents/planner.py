@@ -58,7 +58,7 @@ def _rule_based_intent(query: str) -> Optional[dict]:
 	if is_smalltalk_query(text):
 		return {"intent": "chat", "active_agents": []}
 	if _is_feasibility_query(text):
-		return {"intent": "projects", "active_agents": ["database"]}
+		return {"intent": "combined", "active_agents": ["inventory", "database"]}
 
 	wants_research = _contains_any(text, RESEARCH_KEYWORDS)
 	wants_inventory = _contains_any(text, INVENTORY_KEYWORDS)
@@ -84,7 +84,8 @@ def _rule_based_intent(query: str) -> Optional[dict]:
 
 
 def planner_node(state: dict) -> dict:
-	heuristic = _rule_based_intent(state.get("user_query", ""))
+	user_query = state.get("user_query", "")
+	heuristic = _rule_based_intent(user_query)
 	if heuristic:
 		return heuristic
 
@@ -92,6 +93,8 @@ def planner_node(state: dict) -> dict:
 		"You are the planner for Sandy's Treedome multi-agent system. "
 		"Classify the user query into one of these intents: "
 		"research, inventory, projects, combined, chat. "
+		"For project feasibility/start-readiness questions, return intent='combined' "
+		"with active_agents=['inventory','database'] only. "
 		"Use chat for greetings or casual conversation like hi/hello/hey/thanks. "
 		"Return strict JSON only with keys: intent and active_agents. "
 		'active_agents can only include "research", "inventory", "database".'
@@ -101,7 +104,7 @@ def planner_node(state: dict) -> dict:
 	response = llm.invoke(
 		[
 			SystemMessage(content=prompt),
-			HumanMessage(content=state.get("user_query", "")),
+			HumanMessage(content=user_query),
 		]
 	)
 
@@ -111,9 +114,11 @@ def planner_node(state: dict) -> dict:
 		active_agents = parsed.get("active_agents", ["research", "inventory", "database"])
 		if not isinstance(active_agents, list):
 			active_agents = ["research", "inventory", "database"]
+		if _is_feasibility_query(user_query.lower()):
+			return {"intent": "combined", "active_agents": ["inventory", "database"]}
 		return {"intent": intent, "active_agents": active_agents}
 	except Exception:
-		fallback = _rule_based_intent(state.get("user_query", "").lower())
+		fallback = _rule_based_intent(user_query.lower())
 		if fallback:
 			return fallback
 		return {"intent": "combined", "active_agents": ["research", "inventory", "database"]}

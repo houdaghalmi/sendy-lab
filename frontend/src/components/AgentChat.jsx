@@ -1,5 +1,15 @@
 'use client'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import {
+  ChevronDown,
+  ChevronUp,
+  History,
+  Loader2,
+  PlusSquare,
+  RefreshCcw,
+  SendHorizontal,
+  Trash2,
+} from 'lucide-react'
 
 import {
   createAgentResponse,
@@ -272,10 +282,12 @@ export default function AgentChat({ role }) {
       <aside className="history-sidebar">
         <div className="history-header">
           <button className="new-chat-btn" onClick={handleNewChat}>
-            <span>🆕</span>
+            <PlusSquare size={15} aria-hidden="true" />
             <span>New Chat</span>
           </button>
-          <button className="icon-btn" onClick={fetchHistory} title="Refresh history">🔄</button>
+          <button className="icon-btn" onClick={fetchHistory} title="Refresh history">
+            <RefreshCcw size={15} aria-hidden="true" />
+          </button>
         </div>
 
         {historyLoading && <div className="history-state">Loading history...</div>}
@@ -295,7 +307,10 @@ export default function AgentChat({ role }) {
                   onClick={() => handleSelectDiscussion(task.id)}
                 >
                   <div className="history-item-main">
-                    <div className="history-item-title">🕓 {truncateTask(task.task)}</div>
+                    <div className="history-item-title">
+                      <History size={13} aria-hidden="true" />
+                      <span>{truncateTask(task.task)}</span>
+                    </div>
                     <div className="history-item-date">{formatTime(task.created_at)}</div>
                   </div>
                   <span
@@ -304,7 +319,7 @@ export default function AgentChat({ role }) {
                     title="Delete discussion"
                     onClick={(event) => handleDeleteDiscussion(event, task.id)}
                   >
-                    🗑️
+                    <Trash2 size={13} aria-hidden="true" />
                   </span>
                 </button>
               ))}
@@ -355,7 +370,9 @@ export default function AgentChat({ role }) {
               className="rail-btn"
               onClick={() => chatMessagesRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
               title="Top"
-            >▲</button>
+            >
+              <ChevronUp size={12} aria-hidden="true" />
+            </button>
 
             <div className="rail-slider-wrap">
               <input
@@ -377,7 +394,9 @@ export default function AgentChat({ role }) {
               className="rail-btn"
               onClick={() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' })}
               title="Bottom"
-            >▼</button>
+            >
+              <ChevronDown size={12} aria-hidden="true" />
+            </button>
           </div>
         </div>
 
@@ -392,7 +411,8 @@ export default function AgentChat({ role }) {
             disabled={isSending}
           />
           <button onClick={handleSend} disabled={isSending || !input.trim()}>
-            {isSending ? '...' : 'Send'}
+            {isSending ? <Loader2 size={14} className="spin" aria-hidden="true" /> : <SendHorizontal size={14} aria-hidden="true" />}
+            <span>{isSending ? 'Sending' : 'Send'}</span>
           </button>
         </div>
       </section>
@@ -443,7 +463,9 @@ export default function AgentChat({ role }) {
           border-radius: 10px;
           background: rgba(26, 111, 181, 0.08);
           cursor: pointer;
-          font-size: 14px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .history-state,
@@ -512,6 +534,13 @@ export default function AgentChat({ role }) {
           font-size: 12px;
           font-weight: 700;
           color: #0e3f68;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          min-width: 0;
+        }
+
+        .history-item-title span {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -524,9 +553,11 @@ export default function AgentChat({ role }) {
         }
 
         .history-delete {
-          font-size: 14px;
           padding: 3px;
           line-height: 1;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
 
         /* ── Chat panel ── */
@@ -712,11 +743,24 @@ export default function AgentChat({ role }) {
           font-size: 12px;
           font-weight: 800;
           cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
         }
 
         .chat-input-row button:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+        }
+
+        .spin {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
         @media (max-width: 960px) {

@@ -1,7 +1,14 @@
 import json
 import re
 
-from app.tools.db_tool import db_add_inventory_item, db_query_inventory, db_update_inventory
+from app.tools.db_tool import (
+    db_add_inventory_item,
+    db_check_project_feasibility,
+    db_delete_all_inventory,
+    db_get_latest_project_name,
+    db_query_inventory,
+    db_update_inventory,
+)
 
 
 def _extract_required_materials(query: str) -> list[tuple[str, int]]:
@@ -71,11 +78,99 @@ def _parse_add_inventory_command(query: str) -> tuple[str, int, str] | None:
     return None
 
 
+def _is_delete_all_inventory(query: str) -> bool:
+    text = (query or "").strip().lower()
+    patterns = [
+        r"\b(?:delete|remove|clear)\s+all\s+(?:the\s+)?inventory\b",
+        r"\b(?:delete|remove|clear)\s+inventory\s+all\b",
+        r"\bempty\s+inventory\b",
+    ]
+    return any(re.search(pattern, text) for pattern in patterns)
+
+
+def _parse_project_feasibility_target(query: str) -> str | None:
+    text = (query or "").strip()
+    if not re.search(
+        r"\b(feasibility|feasible|viable|viability|readiness|can\s+i\s+start|can\s+we\s+start|should\s+i\s+start|ready)\b",
+        text,
+        flags=re.IGNORECASE,
+    ):
+        return None
+
+    def _clean_target(target: str) -> str:
+        cleaned = (target or "").strip(" .,:;!?")
+        cleaned = re.sub(r"^(?:project\s+)?(?:called\s+)?", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s+project$", "", cleaned, flags=re.IGNORECASE).strip(" .,:;")
+        if cleaned.lower() in {"this", "that"}:
+            latest = db_get_latest_project_name()
+            return latest or ""
+        return cleaned
+
+    patterns = [
+        r"\bfor\s+(?:project\s+)?(?:called\s+)?(.+)$",
+        r"\b(?:can\s+i\s+start|can\s+we\s+start|should\s+i\s+start)\s+(.+)$",
+        r"\b(?:is|can|should)\s+(.+?)\s+project\s+(?:ready|feasible|viable|to\s+start)\b",
+        r"\b(.+?)\s+project\s+(?:is\s+)?(?:ready|feasible|viable|to\s+start)\b",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if not match:
+            continue
+        target = _clean_target(match.group(1))
+        if target:
+            return target
+
+    if re.search(r"\b(this|that)\s+project\b", text, flags=re.IGNORECASE) or re.search(
+        r"\bproject\b", text, flags=re.IGNORECASE
+    ):
+        return db_get_latest_project_name()
+    return None
+
+
+def _format_project_inventory_scope(feasibility_data: dict) -> str:
+    status = feasibility_data.get("feasibility_status", "UNKNOWN")
+    project_name = feasibility_data.get("project_name", "Unknown Project")
+    if status in {"NOT_FOUND", "ERROR"}:
+        return f"Project inventory scope unavailable: {feasibility_data.get('message') or feasibility_data.get('error', 'Unknown error')}"
+
+    required_items = feasibility_data.get("required_items", [])
+    if not required_items:
+        return f"Project inventory scope for '{project_name}': no material requirements defined."
+
+    risky_by_id = {item["inventory_id"]: item for item in feasibility_data.get("risky_items", [])}
+    missing_by_id = {item["inventory_id"]: item for item in feasibility_data.get("missing_items", [])}
+
+    lines = [f"Project inventory scope for '{project_name}' (required items only):"]
+    for item in required_items:
+        item_id = item.get("inventory_id")
+        name = item.get("item_name")
+        available = item.get("available_quantity", 0)
+        needed = item.get("required_quantity", 0)
+        unit = item.get("unit", "units")
+        if item_id in missing_by_id:
+            missing = missing_by_id[item_id].get("missing_quantity", 0)
+            lines.append(f"- {name}: insufficient ({available} {unit}, needs {needed}, short by {missing})")
+        elif item_id in risky_by_id:
+            remaining = risky_by_id[item_id].get("remaining_after_use", 0)
+            min_req = risky_by_id[item_id].get("min_required_in_stock", 0)
+            lines.append(
+                f"- {name}: available but risky ({available} {unit}, needs {needed}, remaining {remaining} below min {min_req})"
+            )
+        else:
+            lines.append(f"- {name}: available ({available} {unit}, needs {needed})")
+    return "\n".join(lines)
+
+
 def inventory_node(state: dict) -> dict:
     if "inventory" not in state.get("active_agents", []) and state.get("intent") != "combined":
         return {"inventory_result": ""}
 
     query = (state.get("user_query") or "").strip()
+
+    feasibility_target = _parse_project_feasibility_target(query)
+    if feasibility_target:
+        feasibility_data = db_check_project_feasibility(feasibility_target)
+        return {"inventory_result": _format_project_inventory_scope(feasibility_data)}
 
     update_match = re.search(r"(?:set|update|change)\s+(.+?)\s+(?:to|=)\s+(\d+)\b", query, flags=re.IGNORECASE)
     if update_match:
@@ -88,6 +183,10 @@ def inventory_node(state: dict) -> dict:
     if add_command:
         item_name, qty, unit = add_command
         result = db_add_inventory_item(item_name=item_name, quantity=qty, unit=unit)
+        return {"inventory_result": result}
+
+    if _is_delete_all_inventory(query):
+        result = db_delete_all_inventory()
         return {"inventory_result": result}
 
     item_hint = None
