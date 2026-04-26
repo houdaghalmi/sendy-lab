@@ -7,9 +7,6 @@ from app.services.ai_service import get_llm
 def synthesizer_node(state: dict) -> dict:
     role = state.get("role", "sandy")
     intent = state.get("intent", "combined")
-    research_result = (state.get("research_result") or "").strip()
-    inventory_result = (state.get("inventory_result") or "").strip()
-    db_result = (state.get("db_result") or "").strip()
 
     if intent == "chat" and is_smalltalk_query(state.get("user_query", "")):
         persona = {
@@ -24,12 +21,6 @@ def synthesizer_node(state: dict) -> dict:
             )
         }
 
-    # Prefer deterministic output for single-agent database/inventory flows.
-    if intent == "projects" and db_result and not research_result and not inventory_result:
-        return {"final_response": db_result}
-    if intent == "inventory" and inventory_result and not research_result and not db_result:
-        return {"final_response": inventory_result}
-
     prompt = (
         f"You are speaking to the role '{role}' in Sandy's lab app. "
         "You must stay in Sandy's Treedome lab domain (research, experiments, projects, inventory). "
@@ -41,9 +32,9 @@ def synthesizer_node(state: dict) -> dict:
     combined = (
         f"Intent: {intent}\n"
         f"User query: {state['user_query']}\n\n"
-        f"Research output:\n{research_result}\n\n"
-        f"Inventory output:\n{inventory_result}\n\n"
-        f"Database output:\n{db_result}\n"
+        f"Research output:\n{state.get('research_result', '')}\n\n"
+        f"Inventory output:\n{state.get('inventory_result', '')}\n\n"
+        f"Database output:\n{state.get('db_result', '')}\n"
     )
     llm = get_llm()
     response = llm.invoke([SystemMessage(content=prompt), HumanMessage(content=combined)])

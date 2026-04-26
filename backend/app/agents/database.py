@@ -3,7 +3,6 @@ from typing import Optional
 
 from app.tools.db_tool import (
     db_create_project,
-    db_delete_all_projects,
     db_delete_project,
     db_query_projects,
     db_update_project_status,
@@ -61,14 +60,6 @@ def _parse_project_delete_name(query: str) -> Optional[str]:
     return None
 
 
-def _wants_delete_all_projects(query: str) -> bool:
-    text = query.lower()
-    return bool(
-        re.search(r"\b(delete|remove)\s+all\b", text)
-        and ("project" in text or "plan" in text or "task" in text or text.strip() == "delete all")
-    )
-
-
 def _extract_status_filter(query: str) -> Optional[str]:
     m = re.search(r"\b(planned|ongoing|completed)\b", query, flags=re.IGNORECASE)
     return m.group(1).lower() if m else None
@@ -112,13 +103,6 @@ def database_node(state: dict) -> dict:
             return {"db_result": denied}
         project_name, status = status_update
         result = db_update_project_status(project_name, status)
-        return {"db_result": result}
-
-    if _wants_delete_all_projects(query):
-        denied = _deny_if_no_permission(role, "delete")
-        if denied:
-            return {"db_result": denied}
-        result = db_delete_all_projects()
         return {"db_result": result}
 
     delete_name = _parse_project_delete_name(query)

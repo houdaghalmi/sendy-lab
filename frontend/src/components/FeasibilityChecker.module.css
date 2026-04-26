@@ -1,0 +1,226 @@
+.container {
+  background: rgba(230, 245, 255, 0.92);
+  border: 2px solid #1A6FB5;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 24px rgba(0, 60, 160, 0.2);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0e3f68;
+  margin: 0;
+}
+
+.closeBtn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(232, 64, 64, 0.1);
+  color: #E84040;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.closeBtn:hover {
+  background: #E84040;
+  color: #fff;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 20px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.loading {
+  background: rgba(26, 111, 181, 0.1);
+  color: #124f85;
+}
+
+.error {
+  background: rgba(232, 64, 64, 0.1);
+  color: #E84040;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 2px solid;
+  margin-bottom: 16px;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.statusEmoji {
+  font-size: 18px;
+}
+
+.statusText {
+  letter-spacing: 0.05em;
+}
+
+.projectInfo {
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 12px;
+}
+
+.label {
+  font-weight: 700;
+  color: #124f85;
+}
+
+.value {
+  color: #0e3f68;
+  font-weight: 600;
+}
+
+.section {
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0e3f68;
+  margin: 0 0 10px 0;
+  letter-spacing: 0.04em;
+}
+
+.itemsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(26, 111, 181, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 12px;
+}
+
+.itemName {
+  font-weight: 700;
+  color: #0e3f68;
+  margin-bottom: 6px;
+}
+
+.itemDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.required,
+.available,
+.neutral {
+  color: #124f85;
+}
+
+.missing.item {
+  background: rgba(232, 64, 64, 0.08);
+  border-color: rgba(232, 64, 64, 0.3);
+}
+
+.missing {
+  color: #E84040;
+}
+
+.risky.item {
+  background: rgba(240, 165, 0, 0.08);
+  border-color: rgba(240, 165, 0, 0.3);
+}
+
+.actionBox {
+  background: rgba(82, 183, 136, 0.08);
+  border: 1px solid rgba(82, 183, 136, 0.3);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.actionLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #124f85;
+  margin-bottom: 6px;
+}
+
+.actionText {
+  font-size: 12px;
+  color: #0e3f68;
+  line-height: 1.4;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.refreshBtn,
+.closeActionBtn,
+.retryBtn {
+  min-width: 100px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.refreshBtn,
+.retryBtn {
+  background: #1A6FB5;
+  color: #fff;
+}
+
+.refreshBtn:hover,
+.retryBtn:hover {
+  background: #1579cb;
+  box-shadow: 0 2px 8px rgba(26, 111, 181, 0.3);
+}
+
+.closeActionBtn {
+  background: rgba(26, 111, 181, 0.1);
+  color: #1A6FB5;
+  border: 1px solid rgba(26, 111, 181, 0.2);
+}
+
+.closeActionBtn:hover {
+  background: rgba(26, 111, 181, 0.2);
+}

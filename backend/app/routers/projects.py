@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from app.models.schema import get_db, Project
+from app.services.feasibility_service import check_project_feasibility, get_feasibility_summary
 
 router = APIRouter()
 
@@ -42,3 +43,30 @@ def delete_project(proj_id: int, db: Session = Depends(get_db)):
     db.delete(proj)
     db.commit()
     return {"deleted": proj_id}
+
+
+@router.get("/{proj_id}/feasibility")
+def check_project_feasibility_endpoint(proj_id: int, db: Session = Depends(get_db)):
+    """
+    Check if a project is feasible based on current inventory.
+    
+    Returns:
+    - project_id: Project ID
+    - project_name: Project name
+    - feasibility_status: FEASIBLE / RISKY / NOT_FEASIBLE
+    - required_items: List of all required materials
+    - missing_items: List of items with insufficient quantity
+    - risky_items: List of items that would fall below minimum stock
+    - suggested_action: Recommended action
+    """
+    # Verify project exists
+    project = db.query(Project).filter(Project.id == proj_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail=f"Project {proj_id} not found")
+    
+    feasibility_data = check_project_feasibility(proj_id)
+    
+    if feasibility_data.get("feasibility_status") == "ERROR":
+        raise HTTPException(status_code=500, detail=feasibility_data.get("error", "Failed to check feasibility"))
+    
+    return feasibility_data

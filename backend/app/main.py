@@ -13,8 +13,8 @@ from contextlib import asynccontextmanager
 import json
 
 from app.graph import AgentState, run_agent_workflow
-from app.models.schema import create_tables, get_db, Project, InventoryItem
-from app.routers import projects, inventory
+from app.models.schema import create_tables, get_db, Project, InventoryItem, ProjectRequirement
+from app.routers import projects, inventory, chat
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -34,6 +34,7 @@ app.add_middleware(
 
 app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
 app.include_router(inventory.router, prefix="/api/inventory", tags=["inventory"])
+app.include_router(chat.router, prefix="/api/agent", tags=["agent"])
 
 def seed_data():
     db = next(get_db())
@@ -51,6 +52,25 @@ def seed_data():
                 InventoryItem(name="Saline Solution", category="Chemicals", quantity=8, unit="L", min_required=2),
             ])
             db.commit()
+            
+            # Add project requirements for feasibility testing
+            projects = db.query(Project).all()
+            inventory_items = db.query(InventoryItem).all()
+            
+            if len(projects) >= 2 and len(inventory_items) >= 2:
+                # Project 1: Karate Biomechanics Study
+                db.add_all([
+                    ProjectRequirement(project_id=projects[0].id, inventory_id=inventory_items[1].id, required_quantity=5),  # 5 Motion Sensors
+                    ProjectRequirement(project_id=projects[0].id, inventory_id=inventory_items[2].id, required_quantity=2),  # 2 L Nitrogen
+                ])
+                
+                # Project 2: Treedome Atmospheric AI
+                db.add_all([
+                    ProjectRequirement(project_id=projects[1].id, inventory_id=inventory_items[0].id, required_quantity=100),  # 100 mL Acorn Extract
+                    ProjectRequirement(project_id=projects[1].id, inventory_id=inventory_items[3].id, required_quantity=5),   # 5 L Saline
+                ])
+                
+                db.commit()
     finally:
         db.close()
 
@@ -68,6 +88,8 @@ async def websocket_chat(websocket: WebSocket):
                 "user_query": payload.get("message", ""),
                 "intent": "",
                 "active_agents": [],
+                "target_agent": "",
+                "feasibility_target": "",
                 "research_result": "",
                 "inventory_result": "",
                 "db_result": "",

@@ -16,9 +16,6 @@ INVENTORY_KEYWORDS = {
 PROJECT_KEYWORDS = {
 	"project", "plan", "task", "roadmap", "priority", "deadline", "schedule", "milestone", "status"
 }
-DATABASE_ACTION_KEYWORDS = {
-	"delete", "remove", "create", "add", "update", "list", "show", "fetch", "database", "record"
-}
 
 
 def is_smalltalk_query(query: str) -> bool:
@@ -48,7 +45,6 @@ def _rule_based_intent(query: str) -> Optional[dict]:
 	wants_research = _contains_any(text, RESEARCH_KEYWORDS)
 	wants_inventory = _contains_any(text, INVENTORY_KEYWORDS)
 	wants_projects = _contains_any(text, PROJECT_KEYWORDS)
-	wants_db_action = _contains_any(text, DATABASE_ACTION_KEYWORDS)
 
 	agents: List[str] = []
 	if wants_research:
@@ -56,8 +52,6 @@ def _rule_based_intent(query: str) -> Optional[dict]:
 	if wants_inventory:
 		agents.append("inventory")
 	if wants_projects:
-		agents.append("database")
-	if wants_db_action and "database" not in agents:
 		agents.append("database")
 
 	if len(agents) > 1:
