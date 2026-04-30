@@ -9,6 +9,8 @@ export default function Dashboard() {
   const [inventory, setInventory] = useState([])
   const [experiments, setExperiments] = useState([])
   const [allRequirements, setAllRequirements] = useState([])
+  const [activityPage, setActivityPage] = useState(1)
+  const ACTIVITY_PER_PAGE = 4
 
   useEffect(() => {
     const load = async () => {
@@ -35,11 +37,47 @@ export default function Dashboard() {
   }, [])
 
   const recentActivity = useMemo(() => {
-    const projectEvents = projects.slice(-3).map((project) => `Project created/updated: ${project.name}`)
-    const inventoryEvents = inventory.slice(-3).map((item) => `Inventory updated: ${item.name} (${item.quantity} ${item.unit})`)
-    const experimentEvents = experiments.slice(-3).map((exp) => `Experiment #${exp.id} recorded`)
-    return [...experimentEvents, ...projectEvents, ...inventoryEvents].slice(0, 6)
+    const toTimestamp = (value) => {
+      if (!value) return 0
+      const parsed = new Date(value).getTime()
+      return Number.isNaN(parsed) ? 0 : parsed
+    }
+
+    const projectEvents = projects.map((project) => ({
+      text: `Project created/updated: ${project.name}`,
+      date: toTimestamp(project.updated_at || project.created_at),
+      fallback: Number(project.id) || 0,
+    }))
+
+    const inventoryEvents = inventory.map((item) => ({
+      text: `Inventory updated: ${item.name} (${item.quantity} ${item.unit})`,
+      date: toTimestamp(item.updated_at || item.created_at),
+      fallback: Number(item.id) || 0,
+    }))
+
+    const experimentEvents = experiments.map((exp) => ({
+      text: `Experiment #${exp.id} recorded`,
+      date: toTimestamp(exp.created_at || exp.updated_at),
+      fallback: Number(exp.id) || 0,
+    }))
+
+    return [...experimentEvents, ...projectEvents, ...inventoryEvents]
+      .sort((a, b) => {
+        if (b.date !== a.date) return b.date - a.date
+        return b.fallback - a.fallback
+      })
+      .slice(0, 20)
   }, [experiments, inventory, projects])
+
+  useEffect(() => {
+    setActivityPage(1)
+  }, [recentActivity.length])
+
+  const totalActivityPages = Math.max(1, Math.ceil(recentActivity.length / ACTIVITY_PER_PAGE))
+  const paginatedRecentActivity = recentActivity.slice(
+    (activityPage - 1) * ACTIVITY_PER_PAGE,
+    activityPage * ACTIVITY_PER_PAGE
+  )
 
   return (
     <main className="ocean-page">
@@ -66,10 +104,34 @@ export default function Dashboard() {
           <section className="wood-list min-h-[320px]">
             <h2 className="list-item-title text-3xl">Recent Activity</h2>
             <div className="mt-3 space-y-2">
-              {recentActivity.length ? recentActivity.map((activity, index) => (
-                <p key={`${activity}-${index}`} className="rounded-xl border border-[#79c0df] bg-[#d8f0fc]/90 px-4 py-3 text-base font-bold text-[#153852]">{activity}</p>
+              {paginatedRecentActivity.length ? paginatedRecentActivity.map((activity, index) => (
+                <div key={`${activity.text}-${activity.fallback}-${index}`} className="rounded-xl border border-[#79c0df] bg-[#d8f0fc]/90 px-4 py-3">
+                  <p className="text-base font-bold text-[#153852]">{activity.text}</p>
+                  <p className="mt-1 text-xs font-black uppercase tracking-wide text-[#2f5f7e]">
+                    {activity.date ? new Date(activity.date).toLocaleString() : 'Date unavailable'}
+                  </p>
+                </div>
               )) : <p className="text-sm font-bold text-[#3f6e89]">No activity yet.</p>}
             </div>
+            {recentActivity.length > ACTIVITY_PER_PAGE && (
+              <div className="mt-4 flex items-center justify-between">
+                <button
+                  className="rounded-full border border-[#6fb8d7] bg-[#d1ecfb] px-4 py-1.5 text-xs font-black text-[#214f6d] disabled:opacity-50"
+                  disabled={activityPage === 1}
+                  onClick={() => setActivityPage((p) => Math.max(1, p - 1))}
+                >
+                  Previous
+                </button>
+                <p className="text-xs font-black text-[#2f5f7e]">Page {activityPage} of {totalActivityPages}</p>
+                <button
+                  className="rounded-full border border-[#6fb8d7] bg-[#d1ecfb] px-4 py-1.5 text-xs font-black text-[#214f6d] disabled:opacity-50"
+                  disabled={activityPage === totalActivityPages}
+                  onClick={() => setActivityPage((p) => Math.min(totalActivityPages, p + 1))}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </section>
         </div>
 
