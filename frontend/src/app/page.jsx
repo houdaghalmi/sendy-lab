@@ -110,11 +110,11 @@ export default function IntroPage() {
         .door-btn {
           position: absolute;
           left: 50%;
-          top: 68%;
+          top: 74%;
           transform: translateX(-50%);
-          /* Adjusted hit area for the door */
-          width: clamp(100px, 12vw, 160px);
-          height: clamp(110px, 16vw, 200px);
+          /* Larger hit area, placed lower on the door */
+          width: clamp(130px, 16vw, 220px);
+          height: clamp(150px, 21vw, 280px);
           border-radius: 50% 50% 4px 4px;
           background: transparent;
           border: 2px solid transparent;
@@ -157,10 +157,10 @@ export default function IntroPage() {
         .title-main {
           font-family: var(--font-fredoka), Georgia, serif;
           font-size: clamp(24px, 5vw, 48px);
-          font-weight: 700;
-          color: #e8f4fd;
-          text-shadow: 0 2px 30px rgba(0,0,0,0.9), 0 0 60px rgba(23,184,207,0.4);
-          letter-spacing: 0.04em;
+          font-weight: 900;
+          color: #f5c842;
+          text-shadow: 0 2px 0 #7d5b1d, 0 4px 10px rgba(0, 0, 0, 0.35);
+          letter-spacing: 0.02em;
         }
 
         .title-sub {

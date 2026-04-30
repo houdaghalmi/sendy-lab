@@ -12,7 +12,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${fredoka.variable} ${nunito.variable}`} style={{ margin: 0 }}>
+      <body className={`${fredoka.variable} ${nunito.variable} m-0`}>
         {children}
       </body>
     </html>

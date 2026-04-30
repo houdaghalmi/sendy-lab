@@ -27,9 +27,12 @@ def _build_engine():
             pass
         return engine
     except OperationalError:
-        # Fallback for local demo mode when Postgres is unavailable.
-        fallback_url = "sqlite:///./sandy_lab.db"
-        return create_engine(fallback_url, connect_args={"check_same_thread": False})
+        if db_url.startswith("sqlite"):
+            raise
+        raise RuntimeError(
+            "Failed to connect to configured PostgreSQL database. "
+            "SQLite fallback is disabled to avoid data inconsistency."
+        )
 
 
 def _sync_sqlite_schema():
@@ -156,6 +159,20 @@ class AgentTask(Base):
 
     __table_args__ = (
         CheckConstraint("status IN ('pending', 'running', 'completed', 'failed')", name="agent_tasks_status_check"),
+    )
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    message = Column(Text, nullable=False)
+    level = Column(String(20), nullable=False, default="info", server_default="info")
+    is_read = Column(Boolean, nullable=False, default=False, server_default="false")
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint("level IN ('info', 'warning', 'error', 'success')", name="notifications_level_check"),
     )
 
 def get_db():

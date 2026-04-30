@@ -299,7 +299,6 @@ export default function AgentChat({ role }) {
         <div className="history-list">
           {Object.entries(groupedHistory).map(([label, tasks]) => (
             <div key={label} className="history-group">
-              <div className="history-group-label">{label}</div>
               {tasks.map(task => (
                 <button
                   key={task.id}
@@ -466,6 +465,13 @@ export default function AgentChat({ role }) {
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          color: #1a6fb5;
+          transition: all 0.15s;
+        }
+
+        .icon-btn:hover {
+          background: rgba(26, 111, 181, 0.15);
+          border-color: rgba(26, 111, 181, 0.5);
         }
 
         .history-state,
@@ -558,6 +564,13 @@ export default function AgentChat({ role }) {
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          color: rgba(26, 111, 181, 0.5);
+          transition: color 0.15s;
+          cursor: pointer;
+        }
+
+        .history-delete:hover {
+          color: #d63030;
         }
 
         /* ── Chat panel ── */
