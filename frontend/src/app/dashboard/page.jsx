@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import AppNav from '@/components/AppNav'
+import KarenChatSlider from '@/components/KarenChatSlider'
 import { experimentsApi, inventoryApi, projectsApi } from '@/services/labApi'
 
 export default function Dashboard() {
@@ -154,6 +155,7 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
+      <KarenChatSlider />
     </main>
   )
 }

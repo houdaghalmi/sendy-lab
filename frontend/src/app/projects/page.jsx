@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import AppNav from '@/components/AppNav'
+import KarenChatSlider from '@/components/KarenChatSlider'
 import ModalAddProject from '@/components/ModalAddProject'
 import { projectsApi } from '@/services/labApi'
 
@@ -120,6 +121,7 @@ export default function ProjectsPage() {
       </div>
 
       <ModalAddProject open={showCreateModal} onClose={() => setShowCreateModal(false)} onSubmit={addProject} form={projectForm} setForm={setProjectForm} />
+      <KarenChatSlider />
     </main>
   )
 }

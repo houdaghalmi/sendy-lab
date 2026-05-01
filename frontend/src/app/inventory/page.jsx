@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import AppNav from '@/components/AppNav'
+import KarenChatSlider from '@/components/KarenChatSlider'
 import ModalAddInventory from '@/components/ModalAddInventory'
 import { inventoryApi } from '@/services/labApi'
 
@@ -80,6 +81,7 @@ export default function InventoryPage() {
       </div>
 
       <ModalAddInventory open={showCreateModal} onClose={() => setShowCreateModal(false)} onSubmit={add} form={form} setForm={setForm} />
+      <KarenChatSlider />
     </main>
   )
 }

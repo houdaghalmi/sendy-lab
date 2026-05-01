@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import AppNav from '@/components/AppNav'
+import KarenChatSlider from '@/components/KarenChatSlider'
 import ModalAddExpriments from '@/components/ModalAddExpriments'
 import { experimentsApi, projectsApi } from '@/services/labApi'
 
@@ -92,6 +93,7 @@ export default function ExperimentsPage() {
       </div>
 
       <ModalAddExpriments open={showCreateModal} onClose={() => setShowCreateModal(false)} onSubmit={add} form={form} setForm={setForm} projects={projects} />
+      <KarenChatSlider />
     </main>
   )
 }

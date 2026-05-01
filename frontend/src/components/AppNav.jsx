@@ -9,7 +9,7 @@ import { notificationsApi } from '@/services/labApi'
 const links = [
   { href: '/', label: 'Home' },
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/chat', label: 'Chat' },
+  { href: '/chat', label: 'Karen Assistant' },
   { href: '/projects', label: 'Projects' },
   { href: '/inventory', label: 'Inventory' },
   { href: '/experiments', label: 'Experiments' },
@@ -34,9 +34,11 @@ export default function AppNav() {
   return (
     <nav className="relative z-20 flex w-full items-center gap-3 border-b border-[#5bc3e6]/50 bg-[linear-gradient(180deg,rgba(24,114,181,0.92)_0%,rgba(13,76,134,0.92)_100%)] px-5 py-2 backdrop-blur">
       <div className="hidden min-w-36 sm:block">
-        <span className="text-lg font-black tracking-wide text-[#f5c842]" style={{ textShadow: '0 2px 0 #7d5b1d, 0 4px 10px rgba(0, 0, 0, 0.35)' }}>
-          Sandy Lab
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-black tracking-wide text-[#f5c842]" style={{ textShadow: '0 2px 0 #7d5b1d, 0 4px 10px rgba(0, 0, 0, 0.35)' }}>
+            Sandy Lab
+          </span>
+        </div>
       </div>
       <div className="flex flex-1 items-center justify-center gap-2">
         {links.map((link) => {

@@ -115,7 +115,7 @@ function decodeSession(discussion) {
 }
 
 
-export default function AgentChat({ role }) {
+export default function AgentChat({ role, assistantName = 'Karen' }) {
   const [history, setHistory] = useState([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState('')
@@ -129,9 +129,12 @@ export default function AgentChat({ role }) {
 
   const [sliderValue, setSliderValue] = useState(100)
   const [isScrollable, setIsScrollable] = useState(false)
+  const [historySliderValue, setHistorySliderValue] = useState(0)
+  const [isHistoryScrollable, setIsHistoryScrollable] = useState(false)
 
   const bottomRef = useRef(null)
   const chatMessagesRef = useRef(null)
+  const historyListRef = useRef(null)
   const isSliderDragging = useRef(false)
 
   const groupedHistory = useMemo(() => groupByDate(history), [history])
@@ -140,7 +143,9 @@ export default function AgentChat({ role }) {
 
   useEffect(() => {
     if (!isSliderDragging.current) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+      const el = chatMessagesRef.current
+      if (!el) return
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
     }
   }, [messages])
 
@@ -164,11 +169,43 @@ export default function AgentChat({ role }) {
     return () => clearTimeout(t)
   }, [messages])
 
+  const syncHistorySlider = useCallback(() => {
+    const el = historyListRef.current
+    if (!el) return
+    const { scrollTop, scrollHeight, clientHeight } = el
+    const maxScroll = scrollHeight - clientHeight
+    setIsHistoryScrollable(maxScroll > 10)
+    if (maxScroll <= 0) { setHistorySliderValue(0); return }
+    setHistorySliderValue(Math.round((scrollTop / maxScroll) * 100))
+  }, [])
+
+  useEffect(() => {
+    const el = historyListRef.current
+    if (!el) {
+      setIsHistoryScrollable(false)
+      setHistorySliderValue(0)
+      return
+    }
+    const t = setTimeout(() => {
+      const { scrollHeight, clientHeight } = el
+      setIsHistoryScrollable(scrollHeight - clientHeight > 10)
+    }, 100)
+    return () => clearTimeout(t)
+  }, [history, historyLoading, historyError])
+
   const handleSliderChange = (e) => {
     const el = chatMessagesRef.current
     if (!el) return
     const val = Number(e.target.value)
     setSliderValue(val)
+    el.scrollTop = (val / 100) * (el.scrollHeight - el.clientHeight)
+  }
+
+  const handleHistorySliderChange = (e) => {
+    const el = historyListRef.current
+    if (!el) return
+    const val = Number(e.target.value)
+    setHistorySliderValue(val)
     el.scrollTop = (val / 100) * (el.scrollHeight - el.clientHeight)
   }
 
@@ -290,40 +327,72 @@ export default function AgentChat({ role }) {
           </button>
         </div>
 
-        {historyLoading && <div className="history-state">Loading history...</div>}
-        {!historyLoading && historyError && <div className="history-error">{historyError}</div>}
-        {!historyLoading && !historyError && history.length === 0 && (
-          <div className="history-state">No saved discussions yet.</div>
-        )}
-
-        <div className="history-list">
-          {Object.entries(groupedHistory).map(([label, tasks]) => (
-            <div key={label} className="history-group">
-              {tasks.map(task => (
-                <button
-                  key={task.id}
-                  className={`history-item ${selectedTaskId === task.id ? 'selected' : ''}`}
-                  onClick={() => handleSelectDiscussion(task.id)}
-                >
-                  <div className="history-item-main">
-                    <div className="history-item-title">
-                      <History size={13} aria-hidden="true" />
-                      <span>{truncateTask(task.task)}</span>
-                    </div>
-                    <div className="history-item-date">{formatTime(task.created_at)}</div>
+        <div className="history-body">
+          <div className="history-content">
+            {historyLoading && <div className="history-state">Loading history...</div>}
+            {!historyLoading && historyError && <div className="history-error">{historyError}</div>}
+            {!historyLoading && !historyError && history.length === 0 && (
+              <div className="history-state">No saved discussions yet.</div>
+            )}
+            {!historyLoading && !historyError && history.length > 0 && (
+              <div className="history-list" ref={historyListRef} onScroll={syncHistorySlider}>
+                {Object.entries(groupedHistory).map(([label, tasks]) => (
+                  <div key={label} className="history-group">
+                    {tasks.map(task => (
+                      <button
+                        key={task.id}
+                        className={`history-item ${selectedTaskId === task.id ? 'selected' : ''}`}
+                        onClick={() => handleSelectDiscussion(task.id)}
+                      >
+                        <div className="history-item-main">
+                          <div className="history-item-title">
+                            <History size={13} aria-hidden="true" />
+                            <span>{truncateTask(task.task)}</span>
+                          </div>
+                          <div className="history-item-date">{formatTime(task.created_at)}</div>
+                        </div>
+                        <span
+                          className="history-delete"
+                          role="button"
+                          title="Delete discussion"
+                          onClick={(event) => handleDeleteDiscussion(event, task.id)}
+                        >
+                          <Trash2 size={13} aria-hidden="true" />
+                        </span>
+                      </button>
+                    ))}
                   </div>
-                  <span
-                    className="history-delete"
-                    role="button"
-                    title="Delete discussion"
-                    onClick={(event) => handleDeleteDiscussion(event, task.id)}
-                  >
-                    <Trash2 size={13} aria-hidden="true" />
-                  </span>
-                </button>
-              ))}
+                ))}
+              </div>
+            )}
+          </div>
+          <div className={`history-scroll-rail ${isHistoryScrollable ? 'visible' : ''}`}>
+            <button
+              className="rail-btn"
+              onClick={() => historyListRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+              title="Top"
+            >
+              <ChevronUp size={12} aria-hidden="true" />
+            </button>
+            <div className="rail-slider-wrap">
+              <input
+                type="range"
+                className="rail-slider"
+                min="0"
+                max="100"
+                step="1"
+                value={historySliderValue}
+                onChange={handleHistorySliderChange}
+              />
             </div>
-          ))}
+            <button
+              className="rail-btn"
+              onClick={() => historyListRef.current?.scrollTo({ top: historyListRef.current?.scrollHeight || 0, behavior: 'smooth' })}
+              title="Bottom"
+            >
+              <ChevronDown size={12} aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -339,7 +408,7 @@ export default function AgentChat({ role }) {
           >
             {messages.length === 0 && (
               <div className="empty-chat">
-                Start a new chat and your discussion will be saved in history.
+                Start a new chat with {assistantName} and your discussion will be saved in history.
               </div>
             )}
 
@@ -406,7 +475,7 @@ export default function AgentChat({ role }) {
             value={input}
             onChange={event => setInput(event.target.value)}
             onKeyDown={event => event.key === 'Enter' && handleSend()}
-            placeholder="Ask the agent..."
+            placeholder={`Ask ${assistantName}...`}
             disabled={isSending}
           />
           <button onClick={handleSend} disabled={isSending || !input.trim()}>
@@ -419,6 +488,7 @@ export default function AgentChat({ role }) {
       <style>{`
         .agent-chat-shell {
           height: 100%;
+          min-height: 0;
           display: grid;
           grid-template-columns: 300px 1fr;
           overflow: hidden;
@@ -432,13 +502,19 @@ export default function AgentChat({ role }) {
           flex-direction: column;
           background: rgba(255, 255, 255, 0.82);
           min-width: 0;
+          min-height: 0;
+          overflow: hidden;
         }
 
         .history-header {
+          position: relative;
+          z-index: 2;
           display: flex;
           gap: 8px;
           padding: 12px;
           border-bottom: 1px solid rgba(26, 111, 181, 0.18);
+          background: rgba(255, 255, 255, 0.9);
+          flex-shrink: 0;
         }
 
         .new-chat-btn {
@@ -492,13 +568,33 @@ export default function AgentChat({ role }) {
           color: #7d2c17;
         }
 
+        .history-body {
+          flex: 1;
+          display: flex;
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        .history-content {
+          flex: 1;
+          min-width: 0;
+          min-height: 0;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+
         .history-list {
+          flex: 1;
           overflow-y: auto;
           padding: 8px;
           display: flex;
           flex-direction: column;
           gap: 12px;
+          min-width: 0;
+          scrollbar-width: none;
         }
+        .history-list::-webkit-scrollbar { display: none; }
 
         .history-group {
           display: flex;
@@ -573,11 +669,29 @@ export default function AgentChat({ role }) {
           color: #d63030;
         }
 
+        .history-scroll-rail {
+          width: 0;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 6px 0;
+          gap: 4px;
+          background: rgba(220, 238, 252, 0.7);
+          border-left: 1px solid rgba(26, 111, 181, 0.15);
+          transition: width 0.2s ease;
+          flex-shrink: 0;
+        }
+        .history-scroll-rail.visible {
+          width: 32px;
+        }
+
         /* ── Chat panel ── */
         .chat-panel {
           display: flex;
           flex-direction: column;
           min-width: 0;
+          min-height: 0;
           overflow: hidden;
         }
 
