@@ -58,6 +58,12 @@ export default function KarenChatSlider() {
         .karen-mini .bubble {
           max-width: 90% !important;
         }
+
+        .karen-mini .chat-input-row textarea {
+          min-height: 38px !important;
+          max-height: 84px !important;
+          font-size: 12px !important;
+        }
       `}</style>
     </>
   )

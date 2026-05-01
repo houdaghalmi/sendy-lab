@@ -353,6 +353,13 @@ export default function AgentChat({ role, assistantName = 'Karen' }) {
     }
   }
 
+  const handleInputKeyDown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      handleSend()
+    }
+  }
+
   return (
     <div className="agent-chat-shell">
       <aside className="history-sidebar">
@@ -510,12 +517,13 @@ export default function AgentChat({ role, assistantName = 'Karen' }) {
         {chatError && <div className="chat-error">{chatError}</div>}
 
         <div className="chat-input-row">
-          <input
+          <textarea
             value={input}
             onChange={event => setInput(event.target.value)}
-            onKeyDown={event => event.key === 'Enter' && handleSend()}
-            placeholder={`Ask ${assistantName}...`}
+            onKeyDown={handleInputKeyDown}
+            placeholder={`Ask ${assistantName}... `}
             disabled={isSending}
+            rows={2}
           />
           <button onClick={handleSend} disabled={isSending || !input.trim()}>
             {isSending ? <Loader2 size={14} className="spin" aria-hidden="true" /> : <SendHorizontal size={14} aria-hidden="true" />}
@@ -885,12 +893,14 @@ export default function AgentChat({ role, assistantName = 'Karen' }) {
           border-top: 1px solid rgba(18, 79, 133, 0.2);
           padding: 12px;
           display: flex;
+          align-items: flex-end;
           gap: 10px;
           background: rgba(227, 241, 251, 0.84);
           flex-shrink: 0;
         }
 
-        .chat-input-row input {
+        .chat-input-row input,
+        .chat-input-row textarea {
           flex: 1;
           border: 1px solid rgba(18, 79, 133, 0.3);
           border-radius: 10px;
@@ -898,13 +908,19 @@ export default function AgentChat({ role, assistantName = 'Karen' }) {
           font-size: 13px;
           outline: none;
           color: #0f3f68;
+          resize: none;
+          min-height: 42px;
+          max-height: 104px;
+          overflow-y: auto;
         }
 
         .chat-input-row button {
-          min-width: 92px;
-          border: none;
-          border-radius: 10px;
-          background: #1a6fb5;
+          min-width: 108px;
+          height: 52px;
+          padding: 0 14px;
+          border: 1px solid rgba(255, 255, 255, 0.45);
+          border-radius: 12px;
+          background: linear-gradient(180deg, #3f9add 0%, #1f79bf 100%);
           color: #fff;
           font-size: 12px;
           font-weight: 800;
@@ -913,11 +929,25 @@ export default function AgentChat({ role, assistantName = 'Karen' }) {
           align-items: center;
           justify-content: center;
           gap: 8px;
+          box-shadow: 0 3px 0 rgba(11, 68, 112, 0.35), 0 8px 18px rgba(19, 84, 130, 0.2);
+          transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
+        }
+
+        .chat-input-row button:hover:not(:disabled) {
+          filter: brightness(1.06);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 0 rgba(11, 68, 112, 0.35), 0 10px 18px rgba(19, 84, 130, 0.24);
+        }
+
+        .chat-input-row button:active:not(:disabled) {
+          transform: translateY(1px);
+          box-shadow: 0 2px 0 rgba(11, 68, 112, 0.35), 0 5px 12px rgba(19, 84, 130, 0.18);
         }
 
         .chat-input-row button:disabled {
-          opacity: 0.6;
+          opacity: 0.62;
           cursor: not-allowed;
+          box-shadow: none;
         }
 
         .spin {
