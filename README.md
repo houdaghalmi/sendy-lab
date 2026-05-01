@@ -56,7 +56,7 @@ OPENROUTER_API_KEY=your_openrouter_key
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_MODEL=open router model
 TAVILY_API_KEY=your_tavily_key
-DATABASE_URL=postgresql://sandy:sandy123@localhost:5433/sandy_lab
+DATABASE_URL=postgresql://user:password@localhost:5432/database_name
 SECRET_KEY=change_me
 ```
 
