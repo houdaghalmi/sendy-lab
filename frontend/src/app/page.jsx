@@ -1,12 +1,26 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+
+const createBubbles = () =>
+  Array.from({ length: 18 }, (_, i) => ({
+    id: i,
+    size: 6 + Math.random() * 14,
+    left: Math.random() * 100,
+    delay: Math.random() * 5,
+    dur: 5 + Math.random() * 6,
+  }))
 
 export default function IntroPage() {
   const [phase, setPhase] = useState(0)
   const [hint, setHint] = useState(false)
+  const [bubbles, setBubbles] = useState([])
   const router = useRouter()
+
+  useEffect(() => {
+    setBubbles(createBubbles())
+  }, [])
 
   const handleDoorClick = () => {
     if (phase !== 0) return
@@ -14,16 +28,6 @@ export default function IntroPage() {
     setTimeout(() => setPhase(2), 2400)
     setTimeout(() => router.push('/dashboard'), 3100)
   }
-
-  const bubbles = useRef(
-    Array.from({ length: 18 }, (_, i) => ({
-      id: i,
-      size: 6 + Math.random() * 14,
-      left: Math.random() * 100,
-      delay: Math.random() * 5,
-      dur: 5 + Math.random() * 6,
-    }))
-  ).current
 
   return (
     <div className="intro-root">

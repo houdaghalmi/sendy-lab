@@ -119,6 +119,15 @@
       linear-gradient(180deg, rgba(210, 242, 255, 0.92) 0%, rgba(170, 224, 248, 0.9) 100%);
   }
 
+  .detail-ocean-card {
+    @apply rounded-3xl border border-[#7ecbe5] p-7 shadow-[0_14px_28px_rgba(0,45,85,0.22)];
+    background:
+      radial-gradient(circle at 14% 18%, rgba(220, 244, 255, 0.3) 0 9px, transparent 11px),
+      radial-gradient(circle at 86% 22%, rgba(220, 244, 255, 0.22) 0 7px, transparent 9px),
+      radial-gradient(circle at 70% 78%, rgba(220, 244, 255, 0.18) 0 6px, transparent 8px),
+      linear-gradient(180deg, rgba(210, 242, 255, 0.93) 0%, rgba(167, 222, 248, 0.9) 100%);
+  }
+
   .wood-label {
     @apply text-sm font-black uppercase tracking-wide text-[#0f4d74];
   }
