@@ -46,6 +46,90 @@ def _parse_project_create_name(query: str) -> Optional[str]:
     return "New lab plan"
 
 
+def _extract_labeled_fields(text: str, allowed_labels: set[str]) -> dict[str, str]:
+    pattern = re.compile(r"\b([a-zA-Z_]+)\s*[:=]\s*", flags=re.IGNORECASE)
+    matches = [m for m in pattern.finditer(text) if m.group(1).lower() in allowed_labels]
+    if not matches:
+        return {}
+
+    fields: dict[str, str] = {}
+    for idx, match in enumerate(matches):
+        label = match.group(1).lower()
+        value_start = match.end()
+        value_end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
+        raw_value = text[value_start:value_end].strip(" \t\r\n,;")
+        if raw_value:
+            fields[label] = raw_value
+    return fields
+
+
+def _parse_project_create_payload(query: str) -> Optional[dict]:
+    text = (query or "").strip()
+    if re.search(r"\brequire(?:ment|ments)?\b", text, flags=re.IGNORECASE):
+        return None
+    if not re.search(r"\b(add|create|new)\b", text, flags=re.IGNORECASE):
+        return None
+    if not re.search(r"\b(plan|project|task)\b", text, flags=re.IGNORECASE):
+        return None
+
+    fields = _extract_labeled_fields(text, {"name", "description", "desc", "status", "priority"})
+
+    name = (fields.get("name") or "").strip(" .,:;")
+    description = (fields.get("description") or fields.get("desc") or "").strip(" .,:;")
+
+    if not name:
+        quoted_name = re.search(r"\b(?:project|plan|task)\s*[\"']([^\"']+)[\"']", text, flags=re.IGNORECASE)
+        if quoted_name:
+            name = quoted_name.group(1).strip(" .,:;")
+
+    if not name:
+        explicit_name = re.search(
+            r"\b(?:with\s+name|name|named)\s+([a-zA-Z0-9][a-zA-Z0-9\s\-_]{0,119})$",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if explicit_name:
+            name = explicit_name.group(1).strip(" .,:;")
+
+    if not name:
+        fallback_name = _parse_project_create_name(text)
+        if fallback_name:
+            # Remove trailing field-style fragments if present.
+            fallback_name = re.sub(
+                r"\b(?:description|desc|status|priority)\b\s*[:=].*$",
+                "",
+                fallback_name,
+                flags=re.IGNORECASE,
+            ).strip(" .,:;")
+            fallback_name = re.sub(
+                r"^(?:with\s+name|name|named)\s+",
+                "",
+                fallback_name,
+                flags=re.IGNORECASE,
+            ).strip(" .,:;")
+            name = fallback_name
+
+    if not name:
+        return None
+
+    status = (fields.get("status") or "planned").strip().lower()
+    if status not in {"planned", "ongoing", "completed"}:
+        status = "planned"
+
+    priority = _parse_priority(text)
+    if fields.get("priority"):
+        priority_match = re.search(r"\d+", fields["priority"])
+        if priority_match:
+            priority = int(priority_match.group())
+
+    return {
+        "name": name[:120],
+        "description": description[:500],
+        "status": status,
+        "priority": priority,
+    }
+
+
 def _parse_project_status_update(query: str) -> Optional[tuple[str, str]]:
     status = _extract_status_filter(query)
     if not status:
@@ -214,16 +298,16 @@ def database_node(state: dict) -> dict:
         )
         return {"db_result": result}
 
-    create_name = _parse_project_create_name(query)
-    if create_name:
+    create_payload = _parse_project_create_payload(query)
+    if create_payload:
         denied = _deny_if_no_permission(role, "create")
         if denied:
             return {"db_result": denied}
         result = db_create_project(
-            name=create_name,
-            description=query,
-            status="planned",
-            priority=_parse_priority(query),
+            name=create_payload["name"],
+            description=create_payload["description"],
+            status=create_payload["status"],
+            priority=create_payload["priority"],
         )
         return {"db_result": result}
 
