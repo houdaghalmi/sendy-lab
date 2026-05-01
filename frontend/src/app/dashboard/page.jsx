@@ -78,7 +78,6 @@ export default function Dashboard() {
             <h1 className="page-title mb-1">Dashboard</h1>
             <p className="text-sm text-[#e2f5ff]">Overview of your lab activity and inventory progress.</p>
           </div>
-          <Link href="/chat" className="rounded-full border border-[#f5c842] bg-[#F5C842] px-4 py-2 text-sm font-black text-[#1f2b33] shadow-[0_2px_0_#7d5b1d] transition hover:brightness-95">Open Chat</Link>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
