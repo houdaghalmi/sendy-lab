@@ -1,20 +1,21 @@
 'use client'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import AppNav from '@/components/AppNav'
 import KarenChatSlider from '@/components/KarenChatSlider'
-import { experimentsApi, inventoryApi, projectsApi } from '@/services/labApi'
+import { experimentsApi, inventoryApi, notificationsApi, projectsApi } from '@/services/labApi'
 
 export default function Dashboard() {
   const [projects, setProjects] = useState([])
   const [inventory, setInventory] = useState([])
   const [experiments, setExperiments] = useState([])
   const [allRequirements, setAllRequirements] = useState([])
+  const [notifications, setNotifications] = useState([])
   const [activityPage, setActivityPage] = useState(1)
   const ACTIVITY_PER_PAGE = 4
 
-  useEffect(() => {
-    const load = async () => {
+  const load = useCallback(async () => {
+    try {
       const [projectList, inventoryList, experimentList] = await Promise.all([
         projectsApi.list(),
         inventoryApi.list(),
@@ -28,47 +29,33 @@ export default function Dashboard() {
         projectList.map((project) => projectsApi.listRequirements(project.id).catch(() => []))
       )
       setAllRequirements(requirementsByProject.flat())
-    }
-    load().catch(() => {
+      setNotifications(await notificationsApi.list())
+    } catch {
       setProjects([])
       setInventory([])
       setExperiments([])
       setAllRequirements([])
-    })
+      setNotifications([])
+    }
   }, [])
 
-  const recentActivity = useMemo(() => {
-    const toTimestamp = (value) => {
-      if (!value) return 0
-      const parsed = new Date(value).getTime()
-      return Number.isNaN(parsed) ? 0 : parsed
-    }
+  useEffect(() => {
+    load()
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') load()
+    }, 5000)
+    return () => clearInterval(intervalId)
+  }, [load])
 
-    const projectEvents = projects.map((project) => ({
-      text: `Project created/updated: ${project.name}`,
-      date: toTimestamp(project.updated_at || project.created_at),
-      fallback: Number(project.id) || 0,
-    }))
-
-    const inventoryEvents = inventory.map((item) => ({
-      text: `Inventory updated: ${item.name} (${item.quantity} ${item.unit})`,
-      date: toTimestamp(item.updated_at || item.created_at),
-      fallback: Number(item.id) || 0,
-    }))
-
-    const experimentEvents = experiments.map((exp) => ({
-      text: `Experiment #${exp.id} recorded`,
-      date: toTimestamp(exp.created_at || exp.updated_at),
-      fallback: Number(exp.id) || 0,
-    }))
-
-    return [...experimentEvents, ...projectEvents, ...inventoryEvents]
-      .sort((a, b) => {
-        if (b.date !== a.date) return b.date - a.date
-        return b.fallback - a.fallback
-      })
-      .slice(0, 20)
-  }, [experiments, inventory, projects])
+  const recentActivity = useMemo(
+    () => notifications.slice(0, 50).map((notification) => ({
+      text: notification.message,
+      date: notification.created_at ? new Date(notification.created_at).getTime() : 0,
+      fallback: Number(notification.id) || 0,
+      level: notification.level || 'info',
+    })),
+    [notifications]
+  )
 
   useEffect(() => {
     setActivityPage(1)
@@ -108,9 +95,14 @@ export default function Dashboard() {
               {paginatedRecentActivity.length ? paginatedRecentActivity.map((activity, index) => (
                 <div key={`${activity.text}-${activity.fallback}-${index}`} className="rounded-xl border border-[#79c0df] bg-[#d8f0fc]/90 px-4 py-3">
                   <p className="text-base font-bold text-[#153852]">{activity.text}</p>
-                  <p className="mt-1 text-xs font-black uppercase tracking-wide text-[#2f5f7e]">
-                    {activity.date ? new Date(activity.date).toLocaleString() : 'Date unavailable'}
-                  </p>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <p className="text-xs font-black uppercase tracking-wide text-[#2f5f7e]">
+                      {activity.date ? new Date(activity.date).toLocaleString() : 'Date unavailable'}
+                    </p>
+                    <span className="rounded-full bg-[#b8e0f4] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#225777]">
+                      {activity.level}
+                    </span>
+                  </div>
                 </div>
               )) : <p className="text-sm font-bold text-[#3f6e89]">No activity yet.</p>}
             </div>

@@ -26,7 +26,7 @@ class ItemUpdate(BaseModel):
 
 @router.get("/")
 def list_inventory(db: Session = Depends(get_db)):
-    return db.query(InventoryItem).all()
+    return db.query(InventoryItem).order_by(InventoryItem.last_updated.desc(), InventoryItem.id.desc()).all()
 
 
 @router.post("/")

@@ -37,7 +37,7 @@ class RequirementUpdate(BaseModel):
 
 @router.get("/")
 def list_projects(db: Session = Depends(get_db)):
-    return db.query(Project).all()
+    return db.query(Project).order_by(Project.created_at.desc(), Project.id.desc()).all()
 
 
 @router.post("/")

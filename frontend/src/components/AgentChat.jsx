@@ -139,8 +139,6 @@ export default function AgentChat({ role, assistantName = 'Karen' }) {
 
   const groupedHistory = useMemo(() => groupByDate(history), [history])
 
-  useEffect(() => { fetchHistory() }, [])
-
   useEffect(() => {
     if (!isSliderDragging.current) {
       const el = chatMessagesRef.current
@@ -209,7 +207,7 @@ export default function AgentChat({ role, assistantName = 'Karen' }) {
     el.scrollTop = (val / 100) * (el.scrollHeight - el.clientHeight)
   }
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     setHistoryLoading(true)
     setHistoryError('')
     try {
@@ -220,7 +218,48 @@ export default function AgentChat({ role, assistantName = 'Karen' }) {
     } finally {
       setHistoryLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => { fetchHistory() }, [fetchHistory])
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (!isSending && document.visibilityState === 'visible') {
+        fetchHistory()
+      }
+    }, 4000)
+    return () => clearInterval(intervalId)
+  }, [fetchHistory, isSending])
+
+  useEffect(() => {
+    if (!activeSessionId) return
+
+    const syncActiveDiscussion = async () => {
+      if (isSending || document.visibilityState !== 'visible') return
+      try {
+        const discussion = await getAgentTask(activeSessionId)
+        const nextMessages = decodeSession(discussion)
+        setSelectedTaskId(discussion.id)
+        setMessages((prev) => {
+          const same =
+            prev.length === nextMessages.length &&
+            prev.every(
+              (msg, idx) =>
+                msg.role === nextMessages[idx]?.role &&
+                msg.content === nextMessages[idx]?.content &&
+                msg.created_at === nextMessages[idx]?.created_at
+            )
+          return same ? prev : nextMessages
+        })
+      } catch {
+        // keep local state if sync fails
+      }
+    }
+
+    syncActiveDiscussion()
+    const intervalId = setInterval(syncActiveDiscussion, 3000)
+    return () => clearInterval(intervalId)
+  }, [activeSessionId, isSending])
 
   const handleNewChat = async () => {
     if (isSending) return

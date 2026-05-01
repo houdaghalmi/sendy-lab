@@ -26,7 +26,7 @@ class ExperimentUpdate(BaseModel):
 
 @router.get("/")
 def list_experiments(db: Session = Depends(get_db)):
-    return db.query(ExperimentLog).all()
+    return db.query(ExperimentLog).order_by(ExperimentLog.created_at.desc(), ExperimentLog.id.desc()).all()
 
 
 @router.post("/")

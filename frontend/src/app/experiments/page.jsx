@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import AppNav from '@/components/AppNav'
 import KarenChatSlider from '@/components/KarenChatSlider'
@@ -14,13 +14,30 @@ export default function ExperimentsPage() {
   const [form, setForm] = useState({ project_id: '', result: '', notes: '', success: false })
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [error, setError] = useState('')
   const pageSize = 6
 
-  const load = async () => setExperiments(await experimentsApi.list())
+  const load = useCallback(async () => {
+    try {
+      const [experimentList, projectList] = await Promise.all([
+        experimentsApi.list(),
+        projectsApi.list(),
+      ])
+      setExperiments(experimentList)
+      setProjects(projectList)
+      setError('')
+    } catch (e) {
+      setError(e.message)
+    }
+  }, [])
+
   useEffect(() => {
     load()
-    projectsApi.list().then(setProjects).catch(() => setProjects([]))
-  }, [])
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') load()
+    }, 5000)
+    return () => clearInterval(intervalId)
+  }, [load])
 
   const add = async () => {
     if (!form.project_id) return
@@ -66,6 +83,7 @@ export default function ExperimentsPage() {
             New Experiment
           </button>
         </div>
+        {error && <div className="mb-4 rounded-xl bg-[#E76F51]/20 px-4 py-3 text-sm font-bold text-[#ffd9d1]">{error}</div>}
         <div className="wood-list grid gap-2">
           {paginatedExperiments.map((exp) => (
             <div key={exp.id} className="wood-item">

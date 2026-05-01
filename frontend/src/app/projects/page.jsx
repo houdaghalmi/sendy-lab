@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import AppNav from '@/components/AppNav'
 import KarenChatSlider from '@/components/KarenChatSlider'
 import ModalAddProject from '@/components/ModalAddProject'
@@ -15,17 +15,21 @@ export default function ProjectsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 6
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setProjects(await projectsApi.list())
     } catch (e) {
       setError(e.message)
     }
-  }
+  }, [])
 
   useEffect(() => {
     load()
-  }, [])
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') load()
+    }, 5000)
+    return () => clearInterval(intervalId)
+  }, [load])
 
   const addProject = async () => {
     if (!projectForm.name.trim()) return

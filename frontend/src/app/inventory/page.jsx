@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import AppNav from '@/components/AppNav'
 import KarenChatSlider from '@/components/KarenChatSlider'
@@ -13,12 +13,25 @@ export default function InventoryPage() {
   const [form, setForm] = useState({ name: '', category: 'General', quantity: 0, unit: 'units', min_required: 0 })
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [error, setError] = useState('')
   const pageSize = 6
 
-  const load = async () => setItems(await inventoryApi.list())
+  const load = useCallback(async () => {
+    try {
+      setItems(await inventoryApi.list())
+      setError('')
+    } catch (e) {
+      setError(e.message)
+    }
+  }, [])
+
   useEffect(() => {
     load()
-  }, [])
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') load()
+    }, 5000)
+    return () => clearInterval(intervalId)
+  }, [load])
 
   const add = async () => {
     if (!form.name.trim()) return
@@ -55,6 +68,8 @@ export default function InventoryPage() {
             New Item
           </button>
         </div>
+
+        {error && <div className="mb-4 rounded-xl bg-[#E76F51]/20 px-4 py-3 text-sm font-bold text-[#ffd9d1]">{error}</div>}
 
         <div className="wood-list grid gap-2">
           {paginatedItems.map((item) => (
