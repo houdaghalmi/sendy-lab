@@ -1,3 +1,3 @@
-from app.routers import chat, experiments, inventory, notifications, projects
+from app.routers import activities, chat, experiments, inventory, notifications, projects
 
-__all__ = ["projects", "inventory", "experiments", "notifications", "chat"]
+__all__ = ["projects", "inventory", "experiments", "notifications", "activities", "chat"]

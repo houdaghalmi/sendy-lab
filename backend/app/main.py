@@ -14,7 +14,7 @@ import json
 
 from app.graph import AgentState, run_agent_workflow
 from app.models.schema import create_tables, get_db, Project, InventoryItem, ProjectRequirement
-from app.routers import projects, inventory, chat, experiments, notifications
+from app.routers import activities, projects, inventory, chat, experiments, notifications
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -36,6 +36,7 @@ app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
 app.include_router(inventory.router, prefix="/api/inventory", tags=["inventory"])
 app.include_router(experiments.router, prefix="/api/experiments", tags=["experiments"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["notifications"])
+app.include_router(activities.router, prefix="/api/activities", tags=["activities"])
 app.include_router(chat.router, prefix="/api/agent", tags=["agent"])
 
 def seed_data():

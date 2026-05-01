@@ -3,14 +3,14 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import AppNav from '@/components/AppNav'
 import KarenChatSlider from '@/components/KarenChatSlider'
-import { experimentsApi, inventoryApi, notificationsApi, projectsApi } from '@/services/labApi'
+import { activitiesApi, experimentsApi, inventoryApi, projectsApi } from '@/services/labApi'
 
 export default function Dashboard() {
   const [projects, setProjects] = useState([])
   const [inventory, setInventory] = useState([])
   const [experiments, setExperiments] = useState([])
   const [allRequirements, setAllRequirements] = useState([])
-  const [notifications, setNotifications] = useState([])
+  const [activities, setActivities] = useState([])
   const [activityPage, setActivityPage] = useState(1)
   const ACTIVITY_PER_PAGE = 4
 
@@ -29,13 +29,13 @@ export default function Dashboard() {
         projectList.map((project) => projectsApi.listRequirements(project.id).catch(() => []))
       )
       setAllRequirements(requirementsByProject.flat())
-      setNotifications(await notificationsApi.list())
+      setActivities(await activitiesApi.list())
     } catch {
       setProjects([])
       setInventory([])
       setExperiments([])
       setAllRequirements([])
-      setNotifications([])
+      setActivities([])
     }
   }, [])
 
@@ -48,13 +48,22 @@ export default function Dashboard() {
   }, [load])
 
   const recentActivity = useMemo(
-    () => notifications.slice(0, 50).map((notification) => ({
-      text: notification.message,
-      date: notification.created_at ? new Date(notification.created_at).getTime() : 0,
-      fallback: Number(notification.id) || 0,
-      level: notification.level || 'info',
-    })),
-    [notifications]
+    () => activities.slice(0, 50).map((activity) => {
+      const metadata = activity.metadata_json || activity.metadata || {}
+      const action = (metadata.action || '').toString().trim().toUpperCase()
+      const entityType = (metadata.entity_type || '').toString().trim()
+      const entityName = (metadata.entity_name || '').toString().trim()
+      const projectName = (metadata.project_name || '').toString().trim()
+      return {
+        text: activity.description || 'Activity recorded',
+        date: activity.created_at ? new Date(activity.created_at).getTime() : 0,
+        fallback: Number(activity.id) || 0,
+        level: action || (activity.action_type || 'activity').replaceAll('_', ' '),
+        entityLabel: entityType ? `${entityType}${entityName ? `: ${entityName}` : ''}` : '',
+        projectLabel: projectName ? `Project: ${projectName}` : '',
+      }
+    }),
+    [activities]
   )
 
   useEffect(() => {
@@ -94,6 +103,11 @@ export default function Dashboard() {
               {paginatedRecentActivity.length ? paginatedRecentActivity.map((activity, index) => (
                 <div key={`${activity.text}-${activity.fallback}-${index}`} className="rounded-xl border-2 border-[#0f5f92] bg-[#fff0a5]/95 px-4 py-3">
                   <p className="text-base font-bold text-[#153852]">{activity.text}</p>
+                  {(activity.entityLabel || activity.projectLabel) && (
+                    <p className="mt-1 text-xs font-bold text-[#265a7b]">
+                      {[activity.entityLabel, activity.projectLabel].filter(Boolean).join(' | ')}
+                    </p>
+                  )}
                   <div className="mt-1 flex items-center justify-between gap-2">
                     <p className="text-xs font-black uppercase tracking-wide text-[#2f5f7e]">
                       {activity.date ? new Date(activity.date).toLocaleString() : 'Date unavailable'}
@@ -127,24 +141,7 @@ export default function Dashboard() {
           </section>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <Link href="/projects" className="wood-form transition hover:border-[#f5c842]">
-            <p className="text-lg font-black text-[#153852]">Projects</p>
-            <p className="mt-1 text-sm font-bold text-[#2f5f7e]">Manage project records and requirements.</p>
-          </Link>
-          <Link href="/inventory" className="wood-form transition hover:border-[#f5c842]">
-            <p className="text-lg font-black text-[#153852]">Inventory</p>
-            <p className="mt-1 text-sm font-bold text-[#2f5f7e]">Track items, units, and minimum stock.</p>
-          </Link>
-          <Link href="/experiments" className="wood-form transition hover:border-[#f5c842]">
-            <p className="text-lg font-black text-[#153852]">Experiments</p>
-            <p className="mt-1 text-sm font-bold text-[#2f5f7e]">View and update experiment outcomes.</p>
-          </Link>
-          <Link href="/chat" className="wood-form transition hover:border-[#f5c842]">
-            <p className="text-lg font-black text-[#153852]">Chat Assistant</p>
-            <p className="mt-1 text-sm font-bold text-[#2f5f7e]">Ask the agent about inventory and feasibility.</p>
-          </Link>
-        </div>
+      
       </div>
       <KarenChatSlider />
     </main>

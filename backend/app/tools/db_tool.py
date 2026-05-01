@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.schema import Project, InventoryItem, ProjectRequirement, SessionLocal
+from app.services.activity_service import log_activity, log_project_created
 from typing import Any, Dict, Optional
 import json
 
@@ -45,6 +46,16 @@ def db_update_inventory(item_name: str, new_quantity: int) -> str:
         
         item.quantity = new_quantity
         db.commit()
+        log_activity(
+            db,
+            action="update",
+            entity_type="inventory",
+            entity_id=item.id,
+            entity_name=item.name,
+            source="agent_chat",
+            extra_metadata={"quantity": item.quantity, "unit": item.unit},
+        )
+        db.commit()
         stock_state = "ok" if item.quantity >= item.min_required else "low"
         return f"Updated {item.name}: {new_quantity} {item.unit} - stock_state: {stock_state}"
     finally:
@@ -87,6 +98,16 @@ def db_add_inventory_item(
             if safe_category and (not existing.category or existing.category == "General"):
                 existing.category = safe_category
             db.commit()
+            log_activity(
+                db,
+                action="update",
+                entity_type="inventory",
+                entity_id=existing.id,
+                entity_name=existing.name,
+                source="agent_chat",
+                extra_metadata={"quantity": existing.quantity, "unit": existing.unit},
+            )
+            db.commit()
             stock_state = "ok" if existing.quantity >= existing.min_required else "low"
             return (
                 f"Added {safe_quantity} {existing.unit or safe_unit} to {existing.name}. "
@@ -103,6 +124,16 @@ def db_add_inventory_item(
         db.add(item)
         db.commit()
         db.refresh(item)
+        log_activity(
+            db,
+            action="create",
+            entity_type="inventory",
+            entity_id=item.id,
+            entity_name=item.name,
+            source="agent_chat",
+            extra_metadata={"quantity": item.quantity, "unit": item.unit},
+        )
+        db.commit()
         stock_state = "ok" if item.quantity >= item.min_required else "low"
         return (
             f"Added new inventory item '{item.name}': {item.quantity} {item.unit} "
@@ -126,8 +157,19 @@ def db_delete_all_inventory() -> str:
             .delete(synchronize_session=False)
         )
         deleted_count = len(items)
+        deleted_names = [item.name for item in items]
         for item in items:
             db.delete(item)
+        db.commit()
+        log_activity(
+            db,
+            action="delete",
+            entity_type="inventory",
+            entity_id=None,
+            entity_name=f"{deleted_count} inventory items",
+            source="agent_chat",
+            extra_metadata={"bulk": True, "deleted_count": deleted_count, "deleted_items": deleted_names[:20]},
+        )
         db.commit()
         return f"Deleted all inventory items ({deleted_count} total)."
     finally:
@@ -170,6 +212,8 @@ def db_create_project(name: str, description: str = "", status: str = "planned",
         db.add(project)
         db.commit()
         db.refresh(project)
+        log_project_created(db, project_id=project.id, project_name=project.name, source="agent_chat")
+        db.commit()
         return (
             f"Created project #{project.id}: {project.name} "
             f"(status={project.status}, priority={project.priority})."
@@ -197,6 +241,18 @@ def db_update_project_status(project_name: str, status: str) -> str:
 
         project.status = safe_status
         db.commit()
+        log_activity(
+            db,
+            action="update",
+            entity_type="project",
+            entity_id=project.id,
+            entity_name=project.name,
+            source="agent_chat",
+            project_id=project.id,
+            project_name=project.name,
+            extra_metadata={"status": project.status},
+        )
+        db.commit()
         return f"Updated project '{project.name}' to status '{project.status}'."
     finally:
         db.close()
@@ -215,7 +271,19 @@ def db_delete_project(project_name: str) -> str:
             return f"Project '{project_name}' not found."
 
         project_label = project.name
+        project_id = project.id
         db.delete(project)
+        db.commit()
+        log_activity(
+            db,
+            action="delete",
+            entity_type="project",
+            entity_id=project_id,
+            entity_name=project_label,
+            source="agent_chat",
+            project_id=project_id,
+            project_name=project_label,
+        )
         db.commit()
         return f"Deleted project '{project_label}'."
     finally:
@@ -230,8 +298,19 @@ def db_delete_all_projects() -> str:
             return "No projects found to delete."
 
         deleted_count = len(projects)
+        deleted_names = [project.name for project in projects]
         for project in projects:
             db.delete(project)
+        db.commit()
+        log_activity(
+            db,
+            action="delete",
+            entity_type="project",
+            entity_id=None,
+            entity_name=f"{deleted_count} projects",
+            source="agent_chat",
+            extra_metadata={"bulk": True, "deleted_count": deleted_count, "deleted_projects": deleted_names[:20]},
+        )
         db.commit()
         return f"Deleted all projects ({deleted_count} total)."
     finally:
@@ -408,6 +487,18 @@ def db_add_project_requirement(project_name: str, item_name: str, required_quant
         if requirement:
             requirement.required_quantity = safe_required_quantity
             db.commit()
+            log_activity(
+                db,
+                action="update",
+                entity_type="requirement",
+                entity_id=requirement.id,
+                entity_name=item.name,
+                source="agent_chat",
+                project_id=project.id,
+                project_name=project.name,
+                extra_metadata={"inventory_id": item.id, "required_quantity": requirement.required_quantity, "unit": item.unit},
+            )
+            db.commit()
             return (
                 f"Updated requirement for project '{project.name}': "
                 f"{item.name} = {requirement.required_quantity} {item.unit or 'units'}."
@@ -419,6 +510,19 @@ def db_add_project_requirement(project_name: str, item_name: str, required_quant
             required_quantity=safe_required_quantity,
         )
         db.add(requirement)
+        db.commit()
+        db.refresh(requirement)
+        log_activity(
+            db,
+            action="create",
+            entity_type="requirement",
+            entity_id=requirement.id,
+            entity_name=item.name,
+            source="agent_chat",
+            project_id=project.id,
+            project_name=project.name,
+            extra_metadata={"inventory_id": item.id, "required_quantity": safe_required_quantity, "unit": item.unit},
+        )
         db.commit()
         return (
             f"Added requirement to project '{project.name}': "

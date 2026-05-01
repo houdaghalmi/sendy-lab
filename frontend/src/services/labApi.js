@@ -61,3 +61,7 @@ export const notificationsApi = {
   markRead: (id) => request(`/api/notifications/${id}/read`, { method: 'PATCH' }),
 }
 
+export const activitiesApi = {
+  list: () => request('/api/activities'),
+}
+

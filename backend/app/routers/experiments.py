@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models.schema import ExperimentLog, Project, get_db
 from app.services.notification_service import create_notification
+from app.services.activity_service import log_activity
 
 router = APIRouter()
 
@@ -31,6 +32,7 @@ def list_experiments(db: Session = Depends(get_db)):
 
 @router.post("/")
 def create_experiment(data: ExperimentCreate, db: Session = Depends(get_db)):
+    project = None
     if data.project_id is not None:
         project = db.query(Project).filter(Project.id == data.project_id).first()
         if not project:
@@ -40,6 +42,16 @@ def create_experiment(data: ExperimentCreate, db: Session = Depends(get_db)):
     db.add(experiment)
     db.commit()
     db.refresh(experiment)
+    log_activity(
+        db,
+        action="create",
+        entity_type="experiment",
+        entity_id=experiment.id,
+        entity_name=f"Experiment #{experiment.id}",
+        source="experiments_api",
+        project_id=experiment.project_id,
+        project_name=(project.name if project else None),
+    )
     create_notification(db, f"Experiment #{experiment.id} was created.", "success")
     db.commit()
     return experiment
@@ -77,6 +89,19 @@ def update_experiment(experiment_id: int, data: ExperimentUpdate, db: Session = 
         setattr(experiment, key, value)
     db.commit()
     db.refresh(experiment)
+    project = None
+    if experiment.project_id is not None:
+        project = db.query(Project).filter(Project.id == experiment.project_id).first()
+    log_activity(
+        db,
+        action="update",
+        entity_type="experiment",
+        entity_id=experiment.id,
+        entity_name=f"Experiment #{experiment.id}",
+        source="experiments_api",
+        project_id=experiment.project_id,
+        project_name=(project.name if project else None),
+    )
     create_notification(db, f"Experiment #{experiment.id} was updated.", "info")
     db.commit()
     return experiment
@@ -87,8 +112,21 @@ def delete_experiment(experiment_id: int, db: Session = Depends(get_db)):
     experiment = db.query(ExperimentLog).filter(ExperimentLog.id == experiment_id).first()
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
+    project = None
+    if experiment.project_id is not None:
+        project = db.query(Project).filter(Project.id == experiment.project_id).first()
     db.delete(experiment)
     db.commit()
+    log_activity(
+        db,
+        action="delete",
+        entity_type="experiment",
+        entity_id=experiment_id,
+        entity_name=f"Experiment #{experiment_id}",
+        source="experiments_api",
+        project_id=experiment.project_id,
+        project_name=(project.name if project else None),
+    )
     create_notification(db, f"Experiment #{experiment_id} was deleted.", "warning")
     db.commit()
     return {"deleted": experiment_id}

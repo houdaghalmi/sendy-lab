@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.schema import InventoryItem, Project, ProjectRequirement, get_db
 from app.services.notification_service import create_notification
 from app.services.feasibility_service import check_project_feasibility
+from app.services.activity_service import log_activity, log_project_created
 
 router = APIRouter()
 
@@ -51,6 +52,7 @@ def create_project(data: ProjectCreate, db: Session = Depends(get_db)):
     db.add(proj)
     db.commit()
     db.refresh(proj)
+    log_project_created(db, project_id=proj.id, project_name=proj.name, source="projects_api")
     create_notification(db, f'Project "{proj.name}" was created.', "success")
     db.commit()
     return proj
@@ -80,6 +82,16 @@ def update_project(proj_id: int, data: ProjectUpdate, db: Session = Depends(get_
 
     db.commit()
     db.refresh(project)
+    log_activity(
+        db,
+        action="update",
+        entity_type="project",
+        entity_id=project.id,
+        entity_name=project.name,
+        source="projects_api",
+        project_id=project.id,
+        project_name=project.name,
+    )
     create_notification(db, f'Project "{project.name}" was updated.', "info")
     db.commit()
     return project
@@ -93,6 +105,16 @@ def delete_project(proj_id: int, db: Session = Depends(get_db)):
     project_name = project.name
     db.delete(project)
     db.commit()
+    log_activity(
+        db,
+        action="delete",
+        entity_type="project",
+        entity_id=proj_id,
+        entity_name=project_name,
+        source="projects_api",
+        project_id=proj_id,
+        project_name=project_name,
+    )
     create_notification(db, f'Project "{project_name}" was deleted.', "warning")
     db.commit()
     return {"deleted": proj_id}
@@ -142,6 +164,7 @@ def create_project_requirement(proj_id: int, data: RequirementCreate, db: Sessio
         )
         .first()
     )
+    event_action = "update"
     if requirement:
         requirement.required_quantity = data.required_quantity
     else:
@@ -151,9 +174,26 @@ def create_project_requirement(proj_id: int, data: RequirementCreate, db: Sessio
             required_quantity=data.required_quantity,
         )
         db.add(requirement)
+        event_action = "create"
 
     db.commit()
     db.refresh(requirement)
+    log_activity(
+        db,
+        action=event_action,
+        entity_type="requirement",
+        entity_id=requirement.id,
+        entity_name=inventory_item.name,
+        source="projects_api",
+        project_id=project.id,
+        project_name=project.name,
+        extra_metadata={
+            "inventory_id": inventory_item.id,
+            "inventory_name": inventory_item.name,
+            "required_quantity": data.required_quantity,
+            "unit": inventory_item.unit,
+        },
+    )
     create_notification(
         db,
         f'Requirement updated for project "{project.name}": {inventory_item.name} ({data.required_quantity} {inventory_item.unit}).',
@@ -186,15 +226,33 @@ def update_project_requirement(proj_id: int, req_id: int, data: RequirementUpdat
         raise HTTPException(status_code=404, detail="Requirement not found")
 
     updates = data.dict(exclude_unset=True)
+    inventory_item = None
     if "inventory_id" in updates:
         inventory_item = db.query(InventoryItem).filter(InventoryItem.id == updates["inventory_id"]).first()
         if not inventory_item:
             raise HTTPException(status_code=404, detail="Inventory item not found")
+    if inventory_item is None:
+        inventory_item = db.query(InventoryItem).filter(InventoryItem.id == requirement.inventory_id).first()
+    project = db.query(Project).filter(Project.id == proj_id).first()
     for key, value in updates.items():
         setattr(requirement, key, value)
 
     db.commit()
     db.refresh(requirement)
+    log_activity(
+        db,
+        action="update",
+        entity_type="requirement",
+        entity_id=requirement.id,
+        entity_name=(inventory_item.name if inventory_item else f"Requirement #{requirement.id}"),
+        source="projects_api",
+        project_id=proj_id,
+        project_name=(project.name if project else None),
+        extra_metadata={
+            "inventory_id": requirement.inventory_id,
+            "required_quantity": requirement.required_quantity,
+        },
+    )
     create_notification(db, f"Requirement #{req_id} for project #{proj_id} was updated.", "info")
     db.commit()
     return requirement
@@ -209,8 +267,22 @@ def delete_project_requirement(proj_id: int, req_id: int, db: Session = Depends(
     )
     if not requirement:
         raise HTTPException(status_code=404, detail="Requirement not found")
+    project = db.query(Project).filter(Project.id == proj_id).first()
+    inventory_item = db.query(InventoryItem).filter(InventoryItem.id == requirement.inventory_id).first()
+    requirement_name = inventory_item.name if inventory_item else f"Requirement #{req_id}"
     db.delete(requirement)
     db.commit()
+    log_activity(
+        db,
+        action="delete",
+        entity_type="requirement",
+        entity_id=req_id,
+        entity_name=requirement_name,
+        source="projects_api",
+        project_id=proj_id,
+        project_name=(project.name if project else None),
+        extra_metadata={"inventory_id": requirement.inventory_id},
+    )
     create_notification(db, f"Requirement #{req_id} for project #{proj_id} was deleted.", "warning")
     db.commit()
     return {"deleted": req_id}

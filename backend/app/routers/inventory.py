@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.models.schema import get_db, InventoryItem
 from app.services.notification_service import create_notification
+from app.services.activity_service import log_activity
 from typing import Optional
 
 router = APIRouter()
@@ -35,6 +36,14 @@ def add_item(data: ItemCreate, db: Session = Depends(get_db)):
     db.add(item)
     db.commit()
     db.refresh(item)
+    log_activity(
+        db,
+        action="create",
+        entity_type="inventory",
+        entity_id=item.id,
+        entity_name=item.name,
+        source="inventory_api",
+    )
     create_notification(db, f'Inventory item "{item.name}" was created.', "success")
     db.commit()
     return item
@@ -57,6 +66,14 @@ def update_item(item_id: int, data: ItemUpdate, db: Session = Depends(get_db)):
         setattr(item, k, v)
     db.commit()
     db.refresh(item)
+    log_activity(
+        db,
+        action="update",
+        entity_type="inventory",
+        entity_id=item.id,
+        entity_name=item.name,
+        source="inventory_api",
+    )
     create_notification(db, f'Inventory item "{item.name}" was updated.', "info")
     db.commit()
     return item
@@ -70,6 +87,14 @@ def delete_item(item_id: int, db: Session = Depends(get_db)):
     item_name = item.name
     db.delete(item)
     db.commit()
+    log_activity(
+        db,
+        action="delete",
+        entity_type="inventory",
+        entity_id=item_id,
+        entity_name=item_name,
+        source="inventory_api",
+    )
     create_notification(db, f'Inventory item "{item_name}" was deleted.', "warning")
     db.commit()
     return {"deleted": item_id}
