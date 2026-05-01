@@ -17,6 +17,16 @@ DELETE_ALLOWED_ROLES = {"sandy"}
 WRITE_ALLOWED_ROLES = {"sandy", "squidward"}
 
 
+def _contains_requirement_term(text: str) -> bool:
+    return bool(
+        re.search(
+            r"\brequir(?:e|i)ment(?:s)?\b|\brequirements?\b|\brequirment(?:s)?\b",
+            text or "",
+            flags=re.IGNORECASE,
+        )
+    )
+
+
 def _parse_priority(query: str) -> int:
     text = query.lower()
     if "high priority" in text or "urgent" in text:
@@ -28,7 +38,7 @@ def _parse_priority(query: str) -> int:
 
 def _parse_project_create_name(query: str) -> Optional[str]:
     text = query.strip()
-    if re.search(r"\brequire(?:ment|ments)?\b", text, flags=re.IGNORECASE):
+    if _contains_requirement_term(text):
         return None
     if not re.search(r"\b(add|create|new)\b", text, flags=re.IGNORECASE):
         return None
@@ -65,7 +75,7 @@ def _extract_labeled_fields(text: str, allowed_labels: set[str]) -> dict[str, st
 
 def _parse_project_create_payload(query: str) -> Optional[dict]:
     text = (query or "").strip()
-    if re.search(r"\brequire(?:ment|ments)?\b", text, flags=re.IGNORECASE):
+    if _contains_requirement_term(text):
         return None
     if not re.search(r"\b(add|create|new)\b", text, flags=re.IGNORECASE):
         return None
@@ -166,6 +176,61 @@ def _extract_status_filter(query: str) -> Optional[str]:
 
 
 def _parse_project_requirement(query: str) -> Optional[tuple[str, int, str, Optional[str]]]:
+    text = (query or "").strip()
+
+    # Common command variants:
+    # - add 50 ml of Acorn Extract on project test requirement
+    # - add Acorn Extract 50ml on project test requirement
+    # - i need 1l Saline Solution for my project test
+    direct_patterns = [
+        r"(?:add|set|update)\s+(\d+)\s*(ml|l|g|kg|units?)\s+of\s+(.+?)\s+(?:on|to|for)\s+(?:my\s+)?project\s+(.+)$",
+        r"(?:add|set|update)\s+(.+?)\s+(\d+)\s*(ml|l|g|kg|units?)\s+(?:on|to|for)\s+(?:my\s+)?project\s+(.+)$",
+        r"(?:i\s+need|we\s+need)\s+(\d+)\s*(ml|l|g|kg|units?)\s+(?:of\s+)?(.+?)\s+(?:to|for)\s+(?:my\s+)?project\s+(?:called\s+)?(.+)$",
+        r"(?:my\s+)?project\s+(?:called\s+)?(.+?)\s+(?:requires?|needs?)\s+(\d+)\s*(ml|l|g|kg|units?)\s+of\s+(.+)$",
+        r"(?:add(?:ed)?|set|update)\s+require(?:ment|ments)?[:\s]*project\s+(?:called\s+)?(.+?)\s+needs?\s+(\d+)\s*(ml|l|g|kg|units?)\s+of\s+(.+)$",
+        r"project\s+(?:called\s+)?(.+?)\s+needs?\s+(\d+)\s*(ml|l|g|kg|units?)\s+of\s+(.+)$",
+    ]
+
+    for pattern in direct_patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if not match:
+            continue
+
+        if pattern.startswith(r"(?:add|set|update)\s+(\d+)"):
+            qty = int(match.group(1))
+            unit = match.group(2).lower()
+            item_name = match.group(3).strip(" .,:;")
+            project_name = match.group(4).strip(" .,:;")
+        elif pattern.startswith(r"(?:add|set|update)\s+(.+?)"):
+            item_name = match.group(1).strip(" .,:;")
+            qty = int(match.group(2))
+            unit = match.group(3).lower()
+            project_name = match.group(4).strip(" .,:;")
+        elif pattern.startswith(r"(?:i\s+need|we\s+need)"):
+            qty = int(match.group(1))
+            unit = match.group(2).lower()
+            item_name = match.group(3).strip(" .,:;")
+            project_name = match.group(4).strip(" .,:;")
+        else:
+            project_name = match.group(1).strip(" .,:;")
+            qty = int(match.group(2))
+            unit = match.group(3).lower()
+            item_name = match.group(4).strip(" .,:;")
+
+        project_name = re.sub(r"^(?:project\s+)", "", project_name, flags=re.IGNORECASE).strip(" .,:;")
+        project_name = re.sub(
+            r"\s+(?:require(?:ment|ments)?|requirements?|requirment(?:s)?)$",
+            "",
+            project_name,
+            flags=re.IGNORECASE,
+        ).strip(" .,:;")
+        item_name = re.sub(r"[:;]+$", "", item_name).strip(" .,:;")
+
+        if unit == "unit":
+            unit = "units"
+        if project_name and item_name and qty > 0:
+            return project_name, qty, item_name, unit
+
     patterns = [
         r"(?:add(?:ed)?|set|update)\s+require(?:ment|ments)?[:\s]*project\s+(?:called\s+)?(.+?)\s+needs?\s+(\d+)\s*(ml|l|g|kg|units?)\s+of\s+(.+)$",
         r"project\s+(?:called\s+)?(.+?)\s+needs?\s+(\d+)\s*(ml|l|g|kg|units?)\s+of\s+(.+)$",

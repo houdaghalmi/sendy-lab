@@ -7,6 +7,8 @@ from app.services.ai_service import get_llm
 def synthesizer_node(state: dict) -> dict:
     role = state.get("role", "sandy")
     intent = state.get("intent", "combined")
+    inventory_result = state.get("inventory_result", "")
+    db_result = state.get("db_result", "")
 
     if intent == "chat" and is_smalltalk_query(state.get("user_query", "")):
         persona = {
@@ -21,6 +23,13 @@ def synthesizer_node(state: dict) -> dict:
             )
         }
 
+    # For single-domain CRUD flows, return authoritative tool output directly
+    # to avoid any LLM formatting drift or hallucinated success messages.
+    if intent == "inventory" and inventory_result:
+        return {"final_response": inventory_result}
+    if intent == "projects" and db_result:
+        return {"final_response": db_result}
+
     prompt = (
         f"You are speaking to the role '{role}' in Sandy's lab app. "
         "You must stay in Sandy's Treedome lab domain (research, experiments, projects, inventory). "
@@ -33,8 +42,8 @@ def synthesizer_node(state: dict) -> dict:
         f"Intent: {intent}\n"
         f"User query: {state['user_query']}\n\n"
         f"Research output:\n{state.get('research_result', '')}\n\n"
-        f"Inventory output:\n{state.get('inventory_result', '')}\n\n"
-        f"Database output:\n{state.get('db_result', '')}\n"
+        f"Inventory output:\n{inventory_result}\n\n"
+        f"Database output:\n{db_result}\n"
     )
     llm = get_llm()
     response = llm.invoke([SystemMessage(content=prompt), HumanMessage(content=combined)])

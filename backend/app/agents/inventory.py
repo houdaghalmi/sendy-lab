@@ -58,11 +58,18 @@ def _build_stock_alerts(items: list[dict]) -> str:
 
 def _parse_add_inventory_command(query: str) -> tuple[str, int, str] | None:
     text = (query or "").strip()
+    text = (
+        text.replace("“", '"')
+        .replace("”", '"')
+        .replace("‘", "'")
+        .replace("’", "'")
+    )
 
     unit_pattern = r"(ml|l|g|kg|units?)"
     patterns = [
         rf"(?:add|create|insert)\s+(?P<name>[a-zA-Z][a-zA-Z0-9\s\-]{{1,60}}?)\s+to\s+(?:the\s+)?inventory\s+(?P<qty>\d+)\s*(?P<unit>{unit_pattern})\b",
-        rf"(?:add|create|insert)\s+(?P<name>[a-zA-Z][a-zA-Z0-9\s\-]{{1,60}}?)\s+(?:with\s+)?(?P<qty>\d+)\s*(?P<unit>{unit_pattern})\s+(?:to|on|into)\s+(?:the\s+)?inventory\b",
+        rf"(?:add|create|insert)\s+(?P<name>[a-zA-Z][a-zA-Z0-9\s\-]{{1,60}}?)\s+(?:with\s+)?(?P<qty>\d+)\s*(?P<unit>{unit_pattern})(?:\s+unit(?:s)?)?\s+(?:to|on|into)\s+(?:the\s+)?inventory\b",
+        rf"(?:add|create|insert)\s+[\"'](?P<name>[^\"']{{1,60}})[\"']\s+(?:with\s+)?(?P<qty>\d+)\s*(?P<unit>{unit_pattern})(?:\s+unit(?:s)?)?\s+(?:to|on|into)\s+(?:the\s+)?inventory\b",
         rf"(?:add|create|insert)\s+(?:new\s+)?inventory\s+(?P<name>[a-zA-Z][a-zA-Z0-9\s\-]{{1,60}}?)\s+(?:with\s+)?(?P<qty>\d+)\s*(?P<unit>{unit_pattern})\b",
     ]
     for pattern in patterns:
