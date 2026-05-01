@@ -44,18 +44,18 @@
   .ocean-page {
     @apply relative min-h-screen overflow-hidden bg-cover bg-bottom text-[#EAF6FF];
     background-image:
-      linear-gradient(rgba(87, 193, 235, 0.2), rgba(87, 193, 235, 0.5)),
+      linear-gradient(rgba(106, 205, 244, 0.22), rgba(8, 88, 140, 0.38)),
       url('/background.png');
   }
 
   .ocean-overlay {
     @apply pointer-events-none absolute inset-0 z-0;
     background:
-      radial-gradient(circle at 12% 78%, rgba(220, 244, 255, 0.25) 0 10px, transparent 12px),
+      radial-gradient(circle at 12% 78%, rgba(255, 246, 205, 0.2) 0 10px, transparent 12px),
       radial-gradient(circle at 88% 18%, rgba(220, 244, 255, 0.22) 0 8px, transparent 10px),
-      radial-gradient(circle at 76% 34%, rgba(220, 244, 255, 0.2) 0 6px, transparent 8px),
+      radial-gradient(circle at 76% 34%, rgba(255, 246, 205, 0.14) 0 6px, transparent 8px),
       radial-gradient(circle at 22% 24%, rgba(220, 244, 255, 0.18) 0 7px, transparent 9px),
-      linear-gradient(180deg, rgba(0, 60, 120, 0.14) 0%, rgba(0, 120, 180, 0.06) 100%);
+      linear-gradient(180deg, rgba(0, 60, 120, 0.16) 0%, rgba(0, 120, 180, 0.08) 100%);
   }
 
   .page-container {
@@ -68,7 +68,7 @@
 
   .page-title {
     @apply mb-4 text-4xl font-black text-[#F5C842];
-    text-shadow: 0 2px 0 #7d5b1d, 0 4px 10px rgba(0, 0, 0, 0.35);
+    text-shadow: 0 2px 0 #7d5b1d, 0 4px 0 rgba(5, 46, 79, 0.45), 0 8px 12px rgba(0, 0, 0, 0.25);
   }
 
   .card {
@@ -80,63 +80,67 @@
   }
 
   .wood-list {
-    @apply rounded-2xl border border-[#7ecbe5] px-6 py-8 shadow-[0_10px_22px_rgba(0,45,85,0.2)];
+    @apply rounded-2xl border-[3px] border-[#0f5f92] px-6 py-8 shadow-[0_14px_26px_rgba(0,35,70,0.28)];
     background:
-      radial-gradient(circle at 15% 20%, rgba(220, 244, 255, 0.28) 0 8px, transparent 10px),
-      radial-gradient(circle at 82% 22%, rgba(220, 244, 255, 0.24) 0 6px, transparent 8px),
-      radial-gradient(circle at 68% 76%, rgba(220, 244, 255, 0.2) 0 5px, transparent 7px),
-      linear-gradient(180deg, rgba(198, 236, 252, 0.9) 0%, rgba(155, 215, 242, 0.88) 100%);
+      radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.26) 0 8px, transparent 10px),
+      radial-gradient(circle at 82% 22%, rgba(255, 244, 207, 0.22) 0 6px, transparent 8px),
+      radial-gradient(circle at 68% 76%, rgba(255, 255, 255, 0.16) 0 5px, transparent 7px),
+      linear-gradient(180deg, #ffe352 0%, #ffd81e 55%, #f9c80e 100%);
   }
 
   .wood-item {
-    @apply flex h-[66px] items-center justify-between rounded-xl border border-[#79c0df] px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_3px_8px_rgba(0,45,85,0.12)];
+    @apply flex h-[70px] items-center justify-between rounded-xl border-2 border-[#0f5f92] px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_6px_12px_rgba(0,45,85,0.2)];
     background:
-      radial-gradient(circle at 18% 46%, rgba(220, 244, 255, 0.2) 0 4px, transparent 5px),
-      radial-gradient(circle at 82% 54%, rgba(220, 244, 255, 0.16) 0 3px, transparent 4px),
-      linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 42%),
-      linear-gradient(180deg, #d8f0fc 0%, #bbe3f7 55%, #a0d7f2 100%);
+      radial-gradient(circle at 18% 46%, rgba(255, 255, 255, 0.22) 0 4px, transparent 5px),
+      radial-gradient(circle at 82% 54%, rgba(255, 244, 207, 0.2) 0 3px, transparent 4px),
+      linear-gradient(180deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0) 42%),
+      linear-gradient(180deg, #fff0a5 0%, #ffe36d 55%, #ffd84b 100%);
   }
 
   .list-title {
     @apply text-4xl font-black tracking-wide text-[#f5c842];
-    text-shadow: 0 2px 0 #7d5b1d, 0 4px 10px rgba(0, 0, 0, 0.35);
+    text-shadow: 0 2px 0 #7d5b1d, 0 4px 0 rgba(5, 46, 79, 0.4), 0 8px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .list-title-centered {
+    @apply w-full text-center;
   }
 
   .list-item-title {
-    @apply text-2xl font-black leading-none text-[#2f2419];
+    @apply text-2xl font-black leading-none text-[#5a341d];
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
   }
 
   .list-item-subtitle {
-    @apply text-xs font-bold text-[#5a4e42];
+    @apply text-xs font-bold text-[#224e68];
   }
 
   .wood-form {
-    @apply rounded-2xl border border-[#7ecbe5] p-6 shadow-[0_12px_24px_rgba(0,45,85,0.2)];
+    @apply rounded-2xl border-[3px] border-[#0f5f92] p-6 shadow-[0_12px_26px_rgba(0,45,85,0.24)];
     background:
-      radial-gradient(circle at 16% 18%, rgba(220, 244, 255, 0.24) 0 7px, transparent 9px),
-      radial-gradient(circle at 86% 72%, rgba(220, 244, 255, 0.2) 0 5px, transparent 7px),
-      linear-gradient(180deg, rgba(210, 242, 255, 0.92) 0%, rgba(170, 224, 248, 0.9) 100%);
+      radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.22) 0 7px, transparent 9px),
+      radial-gradient(circle at 86% 72%, rgba(255, 247, 214, 0.14) 0 5px, transparent 7px),
+      linear-gradient(180deg, #ffe352 0%, #ffd81e 56%, #f9c80e 100%);
   }
 
   .detail-ocean-card {
-    @apply rounded-3xl border border-[#7ecbe5] p-7 shadow-[0_14px_28px_rgba(0,45,85,0.22)];
+    @apply rounded-3xl border-2 border-[#0d5f95] p-7 shadow-[0_14px_28px_rgba(0,45,85,0.24)];
     background:
-      radial-gradient(circle at 14% 18%, rgba(220, 244, 255, 0.3) 0 9px, transparent 11px),
-      radial-gradient(circle at 86% 22%, rgba(220, 244, 255, 0.22) 0 7px, transparent 9px),
-      radial-gradient(circle at 70% 78%, rgba(220, 244, 255, 0.18) 0 6px, transparent 8px),
-      linear-gradient(180deg, rgba(210, 242, 255, 0.93) 0%, rgba(167, 222, 248, 0.9) 100%);
+      radial-gradient(circle at 14% 18%, rgba(255, 255, 255, 0.3) 0 9px, transparent 11px),
+      radial-gradient(circle at 86% 22%, rgba(255, 247, 214, 0.18) 0 7px, transparent 9px),
+      radial-gradient(circle at 70% 78%, rgba(255, 255, 255, 0.16) 0 6px, transparent 8px),
+      linear-gradient(180deg, #a5def8 0%, #70c2ec 100%);
   }
 
   .wood-label {
-    @apply text-sm font-black uppercase tracking-wide text-[#0f4d74];
+    @apply text-sm font-black uppercase tracking-wide text-[#0d3f63];
   }
 
   .wood-field {
-    @apply w-full rounded-xl border border-[#6eb2d0] px-3 py-2 text-[#123d59] outline-none;
+    @apply w-full rounded-xl border-2 border-[#1d6d9f] px-3 py-2 text-[#123d59] outline-none;
     background:
-      linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.4) 100%),
-      linear-gradient(180deg, #e8f7ff 0%, #d2eefc 100%);
+      linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(241,251,255,0.86) 100%),
+      linear-gradient(180deg, #effbff 0%, #d7f2ff 100%);
   }
 
   .field {
@@ -153,5 +157,37 @@
 
   .btn-sand {
     @apply rounded-xl bg-[#F5C842] px-4 py-2 font-bold text-[#0A1628] transition hover:brightness-110;
+  }
+
+  .krusty-modal {
+    @apply rounded-2xl border-[3px] border-[#0f5f92] p-6 shadow-[0_16px_30px_rgba(0,40,80,0.3)];
+    background:
+      radial-gradient(circle at 14% 16%, rgba(255, 255, 255, 0.24) 0 8px, transparent 10px),
+      linear-gradient(180deg, #ffd81e 0%, #f9c80e 100%);
+  }
+
+  .krusty-modal-title {
+    @apply mb-3 text-3xl font-black text-[#5a341d];
+    text-shadow: 0 1px 0 rgba(255, 248, 210, 0.8);
+  }
+
+  .list-create-corner {
+    @apply absolute -top-14 right-2 h-24 w-44 bg-contain bg-center bg-no-repeat text-lg font-black text-[#2c382f] sm:-top-16 sm:right-3;
+  }
+
+  .project-status-badge {
+    @apply inline-flex h-9 min-w-24 items-center justify-center rounded-full border-2 px-3 text-[11px] font-black uppercase tracking-wide;
+  }
+
+  .project-status-badge.planned {
+    @apply border-[#6f7b86] bg-[#d7dfe6] text-[#2f3a45];
+  }
+
+  .project-status-badge.ongoing {
+    @apply border-[#0f5f92] bg-[#b6e3fb] text-[#0f4d74];
+  }
+
+  .project-status-badge.completed {
+    @apply border-[#4c7f3d] bg-[#c8ef9f] text-[#2f5a24];
   }
 }

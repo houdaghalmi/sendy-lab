@@ -73,18 +73,19 @@ export default function ExperimentsPage() {
       <div className="ocean-overlay" />
       <AppNav />
       <div className="ocean-container max-w-5xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="list-title mb-0">Experiments</h1>
+        <div className="mb-4">
+          <h1 className="list-title list-title-centered mb-0">Experiments</h1>
+        </div>
+        {error && <div className="mb-4 rounded-xl bg-[#E76F51]/20 px-4 py-3 text-sm font-bold text-[#ffd9d1]">{error}</div>}
+        <div className="relative">
           <button
-            className="h-24 w-48 bg-contain bg-center bg-no-repeat text-sm font-black text-[#2c382f]"
+            className="list-create-corner w-48 text-sm"
             style={{ backgroundImage: "url('/new-item.png')" }}
             onClick={() => setShowCreateModal(true)}
           >
             New Experiment
           </button>
-        </div>
-        {error && <div className="mb-4 rounded-xl bg-[#E76F51]/20 px-4 py-3 text-sm font-bold text-[#ffd9d1]">{error}</div>}
-        <div className="wood-list grid gap-2">
+          <div className="wood-list grid gap-2">
           {paginatedExperiments.map((exp) => (
             <div key={exp.id} className="wood-item">
               <div>
@@ -99,6 +100,7 @@ export default function ExperimentsPage() {
               </div>
             </div>
           ))}
+          </div>
         </div>
 
         <div className="mt-5 flex items-center justify-between text-sm font-bold text-[#2f2419]">

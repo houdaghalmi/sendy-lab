@@ -29,8 +29,7 @@ export default function ProjectDetailPage() {
           <div className="detail-ocean-card mx-auto w-full max-w-[820px] text-[#173a54]">
             <div className="flex flex-wrap items-center gap-3">
               <span
-                className="inline-flex h-18 w-28 items-center justify-center bg-contain bg-center bg-no-repeat text-xs font-black uppercase text-[#293137]"
-                style={{ backgroundImage: `url('/${project.status}.png')` }}
+                className={`project-status-badge ${project.status}`}
               >
                 {project.status}
               </span>

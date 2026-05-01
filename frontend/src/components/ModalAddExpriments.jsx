@@ -6,8 +6,8 @@ export default function ModalAddExpriments({ open, onClose, onSubmit, form, setF
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4">
-      <div className="wood-form w-full max-w-lg">
-        <h3 className="mb-3 text-2xl font-black text-[#3f2c17]">Add Experiment</h3>
+      <div className="krusty-modal w-full max-w-lg">
+        <h3 className="krusty-modal-title">Add Experiment</h3>
         <div className="flex flex-col gap-2">
           <label className="wood-label">Project</label>
           <SearchableSelect
